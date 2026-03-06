@@ -238,6 +238,7 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           password: ${{ secrets.PROD_PASSWORD }}
+          command_timeout: 45m
           script: |
             set -e
             APP_DIR=/opt/ai-platform
