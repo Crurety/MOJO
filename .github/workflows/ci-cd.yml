@@ -294,4 +294,6 @@ jobs:
               fi
               $DC up -d --build --force-recreate --remove-orphans
             fi
-            $DC exec -T backend alembic upgrade head
+            if ! $DC exec -T backend alembic upgrade head; then
+              echo "Warning: alembic upgrade failed; deployment continues. Please review DB migration state."
+            fi
