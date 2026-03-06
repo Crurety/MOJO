@@ -1,58 +1,32 @@
-﻿# CI/CD Pipeline - GitHub Actions
-name: CI/CD Pipeline
+﻿name: Mojo CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mojo-ci-cd-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: '3.10'
-  NODE_VERSION: '18'
+  PYTHON_VERSION: "3.10"
+  NODE_VERSION: "18"
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
   PROD_HOST: ${{ secrets.PROD_HOST }}
   PROD_USERNAME: ${{ secrets.PROD_USERNAME }}
   PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
   PROD_PASSWORD: ${{ secrets.PROD_PASSWORD }}
+  PROD_APP_DIR: ${{ secrets.PROD_APP_DIR }}
 
 jobs:
-  # Code lint checks
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          cd backend
-          pip install flake8 black isort
-
-      - name: Run flake8
-        run: |
-          cd backend
-          flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: Run black check (non-blocking)
-        continue-on-error: true
-        run: |
-          cd backend
-          black --check app
-
-      - name: Run isort check (non-blocking)
-        continue-on-error: true
-        run: |
-          cd backend
-          isort --check-only app
-
-  # Backend tests
-  backend-test:
+  backend-ci:
+    name: Backend CI
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -66,8 +40,7 @@ jobs:
           --health-cmd="mysqladmin ping"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=3
-
+          --health-retries=10
       redis:
         image: redis:7-alpine
         ports:
@@ -76,163 +49,186 @@ jobs:
           --health-cmd="redis-cli ping"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=3
-
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql+pymysql://root:test_password@127.0.0.1:3306/test_db
+      REDIS_URL: redis://127.0.0.1:6379/0
+      MONGODB_URL: mongodb://127.0.0.1:27017
+      SECRET_KEY: test_secret_key
+      TESTING: "true"
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
         run: |
-          cd backend
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
-        env:
-          DATABASE_URL: mysql+pymysql://root:test_password@localhost:3306/test_db
-          REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test_secret_key
-        run: |
-          cd backend
-          pytest tests/ -v --cov=app --cov-report=xml
+      - name: Run flake8
+        run: flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+      - name: Run black check (non-blocking)
+        continue-on-error: true
+        run: black --check app
+
+      - name: Run isort check (non-blocking)
+        continue-on-error: true
+        run: isort --check-only app
+
+      - name: Run pytest
+        run: pytest tests -v --cov=app --cov-report=xml
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
         with:
-          file: ./backend/coverage.xml
-          flags: backend
+          name: backend-coverage-xml
+          path: backend/coverage.xml
+          if-no-files-found: warn
 
-  # Frontend checks
-  frontend-test:
+  web-ci:
+    name: Web CI (${{ matrix.project }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [frontend, admin]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
+        run: npm ci
 
       - name: Run lint
-        run: |
-          cd frontend
-          npm run lint
+        run: npm run lint
 
-      - name: Run build check
-        run: |
-          cd frontend
-          npm run build
+      - name: Run build
+        run: npm run build
 
-      - name: Run tests (if configured)
-        run: |
-          cd frontend
-          if node -e "const s=require('./package.json').scripts || {}; process.exit(s.test ? 0 : 1)"; then
-            npm run test
-          else
-            echo "No frontend test script found, skipping."
-          fi
-
-  # Build and push Docker images
-  build:
-    needs: [lint, backend-test, frontend-test]
+  docker-build:
+    name: Docker Build
+    needs: [backend-ci, web-ci]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
         if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
       - name: Build and push backend (sha)
         if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
-          tags: ${{ env.DOCKER_USERNAME }}/ai-platform-backend:${{ github.sha }}
+          tags: ${{ env.DOCKER_USERNAME }}/mojo-backend:${{ github.sha }}
 
       - name: Build and push backend (latest)
-        if: github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
-        uses: docker/build-push-action@v4
+        if: ${{ github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
-          tags: ${{ env.DOCKER_USERNAME }}/ai-platform-backend:latest
+          tags: ${{ env.DOCKER_USERNAME }}/mojo-backend:latest
 
-      - name: Build backend image only (no push)
+      - name: Build backend only (no push)
         if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: false
 
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm ci
-          npm run build
-
-      - name: Build and push nginx (sha)
+      - name: Build and push frontend (sha)
         if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ env.DOCKER_USERNAME }}/ai-platform-nginx:${{ github.sha }}
+          tags: ${{ env.DOCKER_USERNAME }}/mojo-frontend:${{ github.sha }}
 
-      - name: Build and push nginx (latest)
-        if: github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
-        uses: docker/build-push-action@v4
+      - name: Build and push frontend (latest)
+        if: ${{ github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ env.DOCKER_USERNAME }}/ai-platform-nginx:latest
+          tags: ${{ env.DOCKER_USERNAME }}/mojo-frontend:latest
 
-      - name: Build nginx image only (no push)
+      - name: Build frontend only (no push)
         if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: false
 
-  # Deploy to production
+      - name: Build and push admin (sha)
+        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./admin
+          file: ./admin/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_USERNAME }}/mojo-admin:${{ github.sha }}
+
+      - name: Build and push admin (latest)
+        if: ${{ github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./admin
+          file: ./admin/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_USERNAME }}/mojo-admin:latest
+
+      - name: Build admin only (no push)
+        if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./admin
+          file: ./admin/Dockerfile
+          push: false
+
   deploy:
-    needs: build
+    name: Deploy
+    needs: docker-build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
-      - if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && (env.PROD_SSH_KEY != '' || env.PROD_PASSWORD != '') }}
-        uses: actions/checkout@v3
-
-      - name: Deploy to production
+      - name: Deploy to production server
         if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && (env.PROD_SSH_KEY != '' || env.PROD_PASSWORD != '') }}
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
@@ -241,59 +237,36 @@ jobs:
           command_timeout: 45m
           script: |
             set -e
-            APP_DIR=/opt/ai-platform
-            REPO_URL=https://github.com/Crurety/MOJO.git
-            BRANCH=main
-            MAX_RETRIES=5
-
-            retry_cmd() {
-              n=1
-              until [ "$n" -gt "$MAX_RETRIES" ]; do
-                "$@" && return 0
-                echo "Command failed (attempt $n/$MAX_RETRIES): $*"
-                n=$((n + 1))
-                sleep 5
-              done
-              return 1
-            }
+            APP_DIR="${{ secrets.PROD_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR="/opt/mojo"
+            fi
+            REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+            BRANCH="${{ github.ref_name }}"
 
             if [ ! -d "$APP_DIR/.git" ]; then
               rm -rf "$APP_DIR"
-              retry_cmd git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+              git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$APP_DIR"
             fi
 
             cd "$APP_DIR"
-            if retry_cmd git fetch origin "$BRANCH"; then
-              git checkout "$BRANCH"
-              retry_cmd git pull --ff-only origin "$BRANCH"
-            else
-              echo "Warning: git fetch failed after retries, continue with local code in $APP_DIR"
-            fi
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+            git pull --ff-only origin "$BRANCH"
 
             if docker compose version >/dev/null 2>&1; then
               DC="docker compose"
             elif command -v docker-compose >/dev/null 2>&1; then
               DC="docker-compose"
             else
-              echo "Docker Compose is not available on server"
+              echo "Docker Compose not found on server"
               exit 1
             fi
 
             $DC pull || true
             $DC down --remove-orphans || true
-            STALE_IDS=$(docker ps -aq --filter "name=_ai-platform-")
-            if [ -n "$STALE_IDS" ]; then
-              docker rm -f $STALE_IDS || true
-            fi
+            $DC up -d --build --force-recreate --remove-orphans
 
-            if ! $DC up -d --build --force-recreate --remove-orphans; then
-              CONFLICT_IDS=$(docker ps -q --filter "publish=8000")
-              if [ -n "$CONFLICT_IDS" ]; then
-                docker stop $CONFLICT_IDS || true
-                docker rm $CONFLICT_IDS || true
-              fi
-              $DC up -d --build --force-recreate --remove-orphans
-            fi
             if ! $DC exec -T backend alembic upgrade head; then
-              echo "Warning: alembic upgrade failed; deployment continues. Please review DB migration state."
+              echo "Warning: alembic migration failed. Check DB migration state manually."
             fi
