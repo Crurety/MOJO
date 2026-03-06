@@ -280,6 +280,12 @@ jobs:
             fi
 
             $DC pull || true
+            $DC down --remove-orphans || true
+            STALE_IDS=$(docker ps -aq --filter "name=_ai-platform-")
+            if [ -n "$STALE_IDS" ]; then
+              docker rm -f $STALE_IDS || true
+            fi
+
             if ! $DC up -d --build --force-recreate --remove-orphans; then
               CONFLICT_IDS=$(docker ps -q --filter "publish=8000")
               if [ -n "$CONFLICT_IDS" ]; then
