@@ -244,16 +244,31 @@ jobs:
             APP_DIR=/opt/ai-platform
             REPO_URL=https://github.com/Crurety/MOJO.git
             BRANCH=main
+            MAX_RETRIES=5
+
+            retry_cmd() {
+              n=1
+              until [ "$n" -gt "$MAX_RETRIES" ]; do
+                "$@" && return 0
+                echo "Command failed (attempt $n/$MAX_RETRIES): $*"
+                n=$((n + 1))
+                sleep 5
+              done
+              return 1
+            }
 
             if [ ! -d "$APP_DIR/.git" ]; then
               rm -rf "$APP_DIR"
-              git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+              retry_cmd git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$APP_DIR"
             fi
 
             cd "$APP_DIR"
-            git fetch origin "$BRANCH"
-            git checkout "$BRANCH"
-            git pull --ff-only origin "$BRANCH"
+            if retry_cmd git fetch origin "$BRANCH"; then
+              git checkout "$BRANCH"
+              retry_cmd git pull --ff-only origin "$BRANCH"
+            else
+              echo "Warning: git fetch failed after retries, continue with local code in $APP_DIR"
+            fi
 
             if command -v docker-compose >/dev/null 2>&1; then
               DC="docker-compose"
