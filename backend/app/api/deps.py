@@ -11,7 +11,7 @@ from app.core.exceptions import UnauthorizedException
 from app.core.security import decode_access_token
 from app.models import User
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 optional_security = HTTPBearer(auto_error=False)
 
 
@@ -27,9 +27,12 @@ def _parse_user_id_from_token(token: str) -> int:
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
+    if not credentials or credentials.scheme.lower() != "bearer":
+        raise UnauthorizedException(detail="Not authenticated")
+
     user_id = _parse_user_id_from_token(credentials.credentials)
 
     user = db.query(User).filter(User.id == user_id).first()
