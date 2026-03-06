@@ -15,6 +15,7 @@ env:
   PROD_HOST: ${{ secrets.PROD_HOST }}
   PROD_USERNAME: ${{ secrets.PROD_USERNAME }}
   PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+  PROD_PASSWORD: ${{ secrets.PROD_PASSWORD }}
 
 jobs:
   # Code lint checks
@@ -226,18 +227,39 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && env.PROD_SSH_KEY != '' }}
+      - if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && (env.PROD_SSH_KEY != '' || env.PROD_PASSWORD != '') }}
         uses: actions/checkout@v3
 
       - name: Deploy to production
-        if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && env.PROD_SSH_KEY != '' }}
+        if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && (env.PROD_SSH_KEY != '' || env.PROD_PASSWORD != '') }}
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
+          password: ${{ secrets.PROD_PASSWORD }}
           script: |
-            cd /opt/ai-platform
-            docker-compose pull
-            docker-compose up -d
-            docker-compose exec -T backend alembic upgrade head
+            set -e
+            APP_DIR=/opt/ai-platform
+            REPO_URL=https://github.com/Crurety/MOJO.git
+            BRANCH=main
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              rm -rf "$APP_DIR"
+              git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+            git pull --ff-only origin "$BRANCH"
+
+            if command -v docker-compose >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              DC="docker compose"
+            fi
+
+            $DC pull || true
+            $DC up -d --build
+            $DC exec -T backend alembic upgrade head
