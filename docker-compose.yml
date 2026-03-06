@@ -1,0 +1,205 @@
+﻿version: "3.8"
+
+services:
+  # 鍚庣API鏈嶅姟
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URL=mongodb://mongodb:27017
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - STABILITY_API_KEY=${STABILITY_API_KEY}
+      - RUNWAY_API_KEY=${RUNWAY_API_KEY}
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    volumes:
+      - ./backend/logs:/app/logs
+      - ./backend/uploads:/app/uploads
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # MySQL鏁版嵁搴?
+  mysql:
+    image: mysql:8.0
+    container_name: ai-platform-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-change_root_password}
+      - MYSQL_USER=${MYSQL_USER:-ai_platform}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-change_this_password}
+      - MYSQL_DATABASE=ai_platform
+      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
+      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Redis缂撳瓨
+  redis:
+    image: redis:7-alpine
+    container_name: ai-platform-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # MongoDB鏃ュ織
+  mongodb:
+    image: mongo:5
+    container_name: ai-platform-mongodb
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Celery Worker - 榛樿闃熷垪
+  celery-worker-default:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-celery-default
+    command: celery -A app.tasks.celery_app worker -Q default -l info -n worker1@%h
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Celery Worker - 娓呯悊闃熷垪
+  celery-worker-cleanup:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-celery-cleanup
+    command: celery -A app.tasks.celery_app worker -Q cleanup -l info -n worker2@%h
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Celery Worker - 閫氱煡闃熷垪
+  celery-worker-notification:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-celery-notification
+    command: celery -A app.tasks.celery_app worker -Q notification -l info -n worker3@%h
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Celery Worker - 杩愯惀闃熷垪
+  celery-worker-operation:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-celery-operation
+    command: celery -A app.tasks.celery_app worker -Q operation -l info -n worker4@%h
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Celery Beat瀹氭椂浠诲姟
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-celery-beat
+    command: celery -A app.tasks.celery_app beat -l info
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+  # Nginx鍙嶅悜浠ｇ悊
+  nginx:
+    image: nginx:alpine
+    container_name: ai-platform-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./frontend/dist:/usr/share/nginx/html
+    depends_on:
+      - backend
+    networks:
+      - ai-platform-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
+  mongodb-data:
+
+networks:
+  ai-platform-network:
+    driver: bridge

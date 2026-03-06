@@ -1,0 +1,278 @@
+﻿"""Content API routes."""
+
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.core.database import get_db
+from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.rate_limit import RATE_LIMITS, limiter
+from app.models import User
+from app.schemas import (
+    BaseResponse,
+    ScriptCreate,
+    ScriptResponse,
+    ScriptUpdate,
+    TaskCreate,
+    TaskResponse,
+    WorkResponse,
+)
+from app.services import PermissionService, ScriptService, TaskService, WorkService
+from app.tasks import process_content_task
+from app.utils import calculate_cost
+
+router = APIRouter()
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.post("/scripts", response_model=BaseResponse)
+def create_script(
+    script_in: ScriptCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    script_service = ScriptService(db)
+    permission_service = PermissionService(db)
+
+    # Manual script content does not consume script quota; AI generation by keywords does.
+    needs_permission = not (script_in.content and script_in.content.strip())
+    if needs_permission:
+        has_permission, message = permission_service.check_permission(
+            current_user.id,
+            "script",
+            with_message=True,
+        )
+        if not has_permission:
+            raise BadRequestException(detail=message)
+
+    script = script_service.create(current_user.id, script_in)
+
+    if needs_permission and not permission_service.use_permission(current_user.id, "script", 1):
+        raise BadRequestException(detail="使用次数不足")
+
+    return BaseResponse(message="Script created", data={"script_id": script.id})
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/scripts", response_model=List[ScriptResponse])
+def get_user_scripts(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    script_service = ScriptService(db)
+    scripts = script_service.get_user_scripts(current_user.id, skip, limit)
+    return [ScriptResponse.model_validate(s) for s in scripts]
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/scripts/{script_id}", response_model=ScriptResponse)
+def get_script(
+    script_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    script_service = ScriptService(db)
+    script = script_service.get_by_id(script_id)
+    if not script or script.user_id != current_user.id:
+        raise NotFoundException(detail="Script not found")
+    return ScriptResponse.model_validate(script)
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.put("/scripts/{script_id}", response_model=BaseResponse)
+def update_script(
+    script_id: int,
+    script_in: ScriptUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    script_service = ScriptService(db)
+    script = script_service.get_by_id(script_id)
+    if not script or script.user_id != current_user.id:
+        raise NotFoundException(detail="Script not found")
+    script_service.update(script_id, script_in)
+    return BaseResponse(message="Script updated")
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.delete("/scripts/{script_id}", response_model=BaseResponse)
+def delete_script(
+    script_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    script_service = ScriptService(db)
+    deleted = script_service.delete(script_id, current_user.id)
+    if not deleted:
+        raise NotFoundException(detail="Script not found")
+    return BaseResponse(message="Script deleted")
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.post("/tasks", response_model=BaseResponse)
+def create_task(
+    task_in: TaskCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    permission_service = PermissionService(db)
+    task_service = TaskService(db)
+
+    has_permission, message = permission_service.check_permission(
+        current_user.id,
+        task_in.task_type,
+        required_count=1,
+        with_message=True,
+    )
+    if not has_permission:
+        raise BadRequestException(detail=message)
+
+    clarity = (
+        task_in.parameters.get("clarity", "1080p") if task_in.parameters else "1080p"
+    )
+    duration = task_in.parameters.get("duration", 0) if task_in.parameters else 0
+    count = task_in.parameters.get("count", 1) if task_in.parameters else 1
+
+    cost_amount = calculate_cost(
+        task_type=task_in.task_type,
+        clarity=clarity,
+        duration=duration,
+        count=count,
+    )
+
+    task = task_service.create(
+        user_id=current_user.id,
+        task_type=task_in.task_type,
+        parameters=task_in.parameters,
+        cost_amount=cost_amount,
+    )
+
+    if not permission_service.use_permission(current_user.id, task_in.task_type, cost_amount):
+        raise BadRequestException(detail="使用次数不足")
+
+    try:
+        process_content_task.delay(task.id)
+    except Exception:
+        # Keep API responsive in environments without running broker.
+        pass
+
+    return BaseResponse(
+        message="Task created",
+        data={"task_id": task.id, "task_no": task.task_no},
+    )
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.post("/tasks/image", response_model=BaseResponse)
+def create_image_task(
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task_in = TaskCreate(task_type="image", parameters=payload)
+    return create_task(task_in=task_in, current_user=current_user, db=db)
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.post("/tasks/video", response_model=BaseResponse)
+def create_video_task(
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task_in = TaskCreate(task_type="video", parameters=payload)
+    return create_task(task_in=task_in, current_user=current_user, db=db)
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/tasks", response_model=List[TaskResponse])
+def get_user_tasks(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    status: Optional[int] = Query(None),
+    task_type: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task_service = TaskService(db)
+    tasks = task_service.get_user_tasks(current_user.id, skip, limit, status, task_type)
+    return [TaskResponse.model_validate(t) for t in tasks]
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/tasks/{task_ref}", response_model=TaskResponse)
+def get_task(
+    task_ref: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task_service = TaskService(db)
+
+    task = None
+    if task_ref.isdigit():
+        task = task_service.get_by_id(int(task_ref))
+    if not task:
+        task = task_service.get_by_task_no(task_ref)
+
+    if not task or task.user_id != current_user.id:
+        raise NotFoundException(detail="Task not found")
+    return TaskResponse.model_validate(task)
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/works", response_model=List[WorkResponse])
+def get_user_works(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    work_type: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    work_service = WorkService(db)
+    works = work_service.get_user_works(current_user.id, skip, limit, work_type)
+    return [WorkResponse.model_validate(w) for w in works]
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/works/{work_id}", response_model=WorkResponse)
+def get_work(
+    work_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    work_service = WorkService(db)
+    work = work_service.get_by_id(work_id)
+    if not work or work.user_id != current_user.id:
+        raise NotFoundException(detail="Work not found")
+    return WorkResponse.model_validate(work)
+
+
+@limiter.limit(RATE_LIMITS["content"])
+@router.delete("/works/{work_id}", response_model=BaseResponse)
+def delete_work(
+    work_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    work_service = WorkService(db)
+    deleted = work_service.delete(work_id, current_user.id)
+    if not deleted:
+        raise NotFoundException(detail="Work not found")
+    return BaseResponse(message="Work deleted")
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/gallery", response_model=List[WorkResponse])
+def get_gallery(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    work_type: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    work_service = WorkService(db)
+    works = work_service.get_public_works(skip, limit, work_type)
+    return [WorkResponse.model_validate(w) for w in works]
