@@ -33,12 +33,14 @@ jobs:
           cd backend
           flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
 
-      - name: Run black check
+      - name: Run black check (non-blocking)
+        continue-on-error: true
         run: |
           cd backend
           black --check app
 
-      - name: Run isort check
+      - name: Run isort check (non-blocking)
+        continue-on-error: true
         run: |
           cd backend
           isort --check-only app

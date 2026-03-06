@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from app.tasks.celery_app import celery_app
 from app.core.database import SessionLocal
 from app.models import Task, Work, UserPermission, Script
-from app.services import TaskService, WorkService, ScriptService
+from app.services import TaskService, WorkService, ScriptService, MessageService
 from app.services.notification_service import NotificationService
 from app.utils import calculate_cost
 from app.utils.storage import storage_service
