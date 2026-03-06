@@ -153,12 +153,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Login to Docker Hub
+        if: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push backend (sha)
+        if: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
         uses: docker/build-push-action@v4
         with:
           context: ./backend
@@ -166,12 +168,19 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/ai-platform-backend:${{ github.sha }}
 
       - name: Build and push backend (latest)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != ''
         uses: docker/build-push-action@v4
         with:
           context: ./backend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/ai-platform-backend:latest
+
+      - name: Build backend image only (no push)
+        if: ${{ secrets.DOCKER_USERNAME == '' || secrets.DOCKER_PASSWORD == '' }}
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: false
 
       - name: Build frontend
         run: |
@@ -180,6 +189,7 @@ jobs:
           npm run build
 
       - name: Build and push nginx (sha)
+        if: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
         uses: docker/build-push-action@v4
         with:
           context: ./frontend
@@ -188,7 +198,7 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/ai-platform-nginx:${{ github.sha }}
 
       - name: Build and push nginx (latest)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != ''
         uses: docker/build-push-action@v4
         with:
           context: ./frontend
@@ -196,11 +206,19 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/ai-platform-nginx:latest
 
+      - name: Build nginx image only (no push)
+        if: ${{ secrets.DOCKER_USERNAME == '' || secrets.DOCKER_PASSWORD == '' }}
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+
   # Deploy to production
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && secrets.PROD_HOST != '' && secrets.PROD_USERNAME != '' && secrets.PROD_SSH_KEY != ''
 
     steps:
       - uses: actions/checkout@v3
