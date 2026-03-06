@@ -277,12 +277,12 @@ jobs:
             fi
 
             $DC pull || true
-            if ! $DC up -d --build; then
+            if ! $DC up -d --build --force-recreate --remove-orphans; then
               CONFLICT_IDS=$(docker ps -q --filter "publish=8000")
               if [ -n "$CONFLICT_IDS" ]; then
                 docker stop $CONFLICT_IDS || true
                 docker rm $CONFLICT_IDS || true
               fi
-              $DC up -d --build
+              $DC up -d --build --force-recreate --remove-orphans
             fi
             $DC exec -T backend alembic upgrade head
