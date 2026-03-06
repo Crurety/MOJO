@@ -270,10 +270,13 @@ jobs:
               echo "Warning: git fetch failed after retries, continue with local code in $APP_DIR"
             fi
 
-            if command -v docker-compose >/dev/null 2>&1; then
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif command -v docker-compose >/dev/null 2>&1; then
               DC="docker-compose"
             else
-              DC="docker compose"
+              echo "Docker Compose is not available on server"
+              exit 1
             fi
 
             $DC pull || true
