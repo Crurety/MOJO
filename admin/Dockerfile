@@ -1,5 +1,5 @@
 # 管理系统 Dockerfile
-FROM node:16-alpine as build
+FROM node:18-alpine as build
 
 # 设置工作目录
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install
+RUN npm ci
 
 # 复制项目代码
 COPY . .
