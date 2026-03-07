@@ -1,6 +1,6 @@
 """自动化营销模型"""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, BigInteger, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
@@ -11,7 +11,7 @@ class AutomationRule(Base, TimestampMixin):
 
     __tablename__ = "automation_rules"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     rule_name = Column(String(200), nullable=False, comment="规则名称")
     rule_type = Column(
         String(50), nullable=False, comment="规则类型: trigger/lifecycle/churn"
@@ -33,11 +33,11 @@ class AutomationExecution(Base, TimestampMixin):
 
     __tablename__ = "automation_executions"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     rule_id = Column(
-        Integer, ForeignKey("automation_rules.id"), nullable=False, index=True
+        BigInteger, ForeignKey("automation_rules.id"), nullable=False, index=True
     )
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     trigger_data = Column(Text, nullable=True, comment="触发数据，JSON格式")
     status = Column(Integer, nullable=False, comment="状态: 1成功 2失败")
     error_message = Column(Text, nullable=True, comment="错误信息")

@@ -1,5 +1,5 @@
 """优惠券模型"""
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Numeric, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.models.base import Base, TimestampMixin
 from datetime import datetime
@@ -9,7 +9,7 @@ class Coupon(Base, TimestampMixin):
     """优惠券表"""
     __tablename__ = "coupons"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     code = Column(String(50), unique=True, nullable=False, index=True, comment="优惠券码")
     name = Column(String(200), nullable=False, comment="优惠券名称")
     coupon_type = Column(String(20), nullable=False, comment="类型: discount/amount/permission")
@@ -31,10 +31,10 @@ class UserCoupon(Base, TimestampMixin):
     """用户优惠券表"""
     __tablename__ = "user_coupons"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    coupon_id = Column(Integer, ForeignKey("coupons.id"), nullable=False, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    coupon_id = Column(BigInteger, ForeignKey("coupons.id"), nullable=False, index=True)
+    order_id = Column(BigInteger, ForeignKey("orders.id"), nullable=True, index=True)
     status = Column(Integer, default=0, nullable=False, comment="状态: 0未使用 1已使用 2已过期")
     used_at = Column(DateTime, nullable=True, comment="使用时间")
 

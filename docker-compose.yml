@@ -84,6 +84,7 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
       - REDIS_URL=redis://redis:6379/0
       - MONGODB_URL=mongodb://mongodb:27017
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - mysql
       - redis
@@ -93,6 +94,8 @@ services:
     networks:
       - ai-platform-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
 
   # Celery Worker - 娓呯悊闃熷垪
   celery-worker-cleanup:
@@ -105,6 +108,7 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
       - REDIS_URL=redis://redis:6379/0
       - MONGODB_URL=mongodb://mongodb:27017
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - mysql
       - redis
@@ -114,6 +118,8 @@ services:
     networks:
       - ai-platform-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
 
   # Celery Worker - 閫氱煡闃熷垪
   celery-worker-notification:
@@ -126,6 +132,7 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
       - REDIS_URL=redis://redis:6379/0
       - MONGODB_URL=mongodb://mongodb:27017
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - mysql
       - redis
@@ -135,6 +142,8 @@ services:
     networks:
       - ai-platform-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
 
   # Celery Worker - 杩愯惀闃熷垪
   celery-worker-operation:
@@ -147,6 +156,7 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
       - REDIS_URL=redis://redis:6379/0
       - MONGODB_URL=mongodb://mongodb:27017
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - mysql
       - redis
@@ -156,6 +166,8 @@ services:
     networks:
       - ai-platform-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
 
   # Celery Beat瀹氭椂浠诲姟
   celery-beat:
@@ -168,6 +180,7 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
       - REDIS_URL=redis://redis:6379/0
       - MONGODB_URL=mongodb://mongodb:27017
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - mysql
       - redis
@@ -177,6 +190,8 @@ services:
     networks:
       - ai-platform-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
 
   # Nginx鍙嶅悜浠ｇ悊
   nginx:

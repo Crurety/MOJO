@@ -1,5 +1,5 @@
 """发票模型"""
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Numeric, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from app.models.base import Base, TimestampMixin
 
@@ -8,9 +8,9 @@ class Invoice(Base, TimestampMixin):
     """发票表"""
     __tablename__ = "invoices"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    order_id = Column(BigInteger, ForeignKey("orders.id"), nullable=True, index=True)
     invoice_no = Column(String(50), unique=True, nullable=False, index=True, comment="发票编号")
     invoice_type = Column(String(20), nullable=False, comment="发票类型: normal普通/special专用")
     invoice_title = Column(String(200), nullable=False, comment="发票抬头")
@@ -44,8 +44,8 @@ class UserRealName(Base, TimestampMixin):
     """用户实名认证表"""
     __tablename__ = "user_real_names"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), unique=True, nullable=False, index=True)
     real_name = Column(String(50), nullable=False, comment="真实姓名")
     id_card = Column(String(18), nullable=False, comment="身份证号")
     id_card_front = Column(String(500), nullable=True, comment="身份证正面照")

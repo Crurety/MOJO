@@ -1,6 +1,6 @@
 """新用户激励和签到系统"""
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, BigInteger, String
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
@@ -11,8 +11,8 @@ class UserSignIn(Base, TimestampMixin):
 
     __tablename__ = "user_sign_ins"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     sign_date = Column(Date, nullable=False, index=True, comment="签到日期")
     continuous_days = Column(Integer, default=1, nullable=False, comment="连续签到天数")
     reward_points = Column(Integer, default=0, nullable=False, comment="获得积分")
@@ -25,12 +25,12 @@ class NewUserReward(Base, TimestampMixin):
 
     __tablename__ = "new_user_rewards"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     user_id = Column(
-        Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True
+        BigInteger, ForeignKey("users.id"), unique=True, nullable=False, index=True
     )
     register_points = Column(Integer, default=100, nullable=False, comment="注册积分")
-    welcome_coupon_id = Column(Integer, nullable=True, comment="新人优惠券ID")
+    welcome_coupon_id = Column(BigInteger, nullable=True, comment="新人优惠券ID")
     first_order_discount = Column(
         Integer, default=30, nullable=False, comment="首单折扣（百分比）"
     )
@@ -45,12 +45,12 @@ class InviteReward(Base, TimestampMixin):
 
     __tablename__ = "invite_rewards"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     inviter_id = Column(
-        Integer, ForeignKey("users.id"), nullable=False, index=True, comment="邀请人ID"
+        BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="邀请人ID"
     )
     invitee_id = Column(
-        Integer,
+        BigInteger,
         ForeignKey("users.id"),
         nullable=False,
         index=True,
@@ -78,9 +78,9 @@ class ContentShareReward(Base, TimestampMixin):
 
     __tablename__ = "content_share_rewards"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    work_id = Column(Integer, ForeignKey("works.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    work_id = Column(BigInteger, ForeignKey("works.id"), nullable=False, index=True)
     share_platform = Column(String(50), nullable=False, comment="分享平台")
     share_count = Column(Integer, default=1, nullable=False, comment="分享次数")
     reward_points = Column(Integer, default=10, nullable=False, comment="奖励积分")
@@ -94,9 +94,9 @@ class QualityContentReward(Base, TimestampMixin):
 
     __tablename__ = "quality_content_rewards"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    work_id = Column(Integer, ForeignKey("works.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    work_id = Column(BigInteger, ForeignKey("works.id"), nullable=False, index=True)
     quality_score = Column(Integer, nullable=False, comment="质量评分")
     reward_type = Column(
         String(50), nullable=False, comment="奖励类型: points/coupon/permission"
@@ -113,7 +113,7 @@ class MonthlyActivity(Base, TimestampMixin):
 
     __tablename__ = "monthly_activities"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     activity_month = Column(
         String(7), nullable=False, index=True, comment="活动月份 YYYY-MM"
     )
@@ -149,8 +149,8 @@ class UserSegment(Base, TimestampMixin):
 
     __tablename__ = "user_segments"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     segment_type = Column(
         String(50), nullable=False, comment="分层类型: rfm/behavior/value"
     )

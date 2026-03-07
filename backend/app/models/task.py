@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, JSON, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, JSON, DateTime
 from sqlalchemy.orm import relationship
 from app.models.base import Base, TimestampMixin
 
@@ -6,8 +6,8 @@ from app.models.base import Base, TimestampMixin
 class Task(Base, TimestampMixin):
     __tablename__ = "tasks"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     task_no = Column(String(50), unique=True, nullable=False, index=True, comment="任务编号")
     task_type = Column(String(20), nullable=False, comment="任务类型: script/image/video/ad")
     status = Column(Integer, default=0, nullable=False, comment="状态: 0排队 1处理中 2完成 3失败")

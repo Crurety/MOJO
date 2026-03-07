@@ -1,6 +1,6 @@
 """用户标签系统模型"""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, BigInteger, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
@@ -11,7 +11,7 @@ class UserTag(Base, TimestampMixin):
 
     __tablename__ = "user_tags"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     tag_name = Column(String(50), unique=True, nullable=False, comment="标签名称")
     tag_category = Column(
         String(50), nullable=False, comment="标签分类: behavior/preference/value/custom"
@@ -27,9 +27,9 @@ class UserTagRelation(Base, TimestampMixin):
 
     __tablename__ = "user_tag_relations"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    tag_id = Column(Integer, ForeignKey("user_tags.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    tag_id = Column(BigInteger, ForeignKey("user_tags.id"), nullable=False, index=True)
     tag_source = Column(String(20), nullable=False, comment="标签来源: auto/manual")
     confidence = Column(Integer, default=100, nullable=False, comment="置信度 0-100")
     expire_at = Column(DateTime, nullable=True, comment="过期时间")
@@ -43,7 +43,7 @@ class ABTest(Base, TimestampMixin):
 
     __tablename__ = "ab_tests"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     test_name = Column(String(100), nullable=False, comment="测试名称")
     test_key = Column(
         String(50), unique=True, nullable=False, index=True, comment="测试标识"
@@ -78,9 +78,9 @@ class ABTestAssignment(Base, TimestampMixin):
 
     __tablename__ = "ab_test_assignments"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    test_id = Column(Integer, ForeignKey("ab_tests.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    test_id = Column(BigInteger, ForeignKey("ab_tests.id"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     variant = Column(String(50), nullable=False, comment="分配的变体")
 
     test = relationship("ABTest")
@@ -92,9 +92,9 @@ class ABTestMetric(Base, TimestampMixin):
 
     __tablename__ = "ab_test_metrics"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    test_id = Column(Integer, ForeignKey("ab_tests.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    test_id = Column(BigInteger, ForeignKey("ab_tests.id"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     variant = Column(String(50), nullable=False, comment="变体")
     metric_name = Column(String(50), nullable=False, comment="指标名称")
     metric_value = Column(String(100), nullable=False, comment="指标值")
@@ -108,7 +108,7 @@ class PushNotification(Base, TimestampMixin):
 
     __tablename__ = "push_notifications"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     notification_type = Column(
         String(20), nullable=False, comment="通知类型: site/email/sms/app"
     )
@@ -144,11 +144,11 @@ class PushNotificationLog(Base, TimestampMixin):
 
     __tablename__ = "push_notification_logs"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     notification_id = Column(
-        Integer, ForeignKey("push_notifications.id"), nullable=False, index=True
+        BigInteger, ForeignKey("push_notifications.id"), nullable=False, index=True
     )
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     status = Column(Integer, nullable=False, comment="状态: 0失败 1成功")
     error_message = Column(Text, nullable=True, comment="错误信息")
     clicked = Column(Integer, default=0, nullable=False, comment="是否点击: 0否 1是")

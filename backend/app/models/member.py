@@ -1,6 +1,6 @@
 """会员等级和积分系统模型"""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, BigInteger, Numeric, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
@@ -11,7 +11,7 @@ class MemberLevel(Base, TimestampMixin):
 
     __tablename__ = "member_levels"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     level_name = Column(String(50), nullable=False, comment="等级名称")
     level_code = Column(String(20), unique=True, nullable=False, comment="等级代码")
     min_points = Column(Integer, default=0, nullable=False, comment="最低积分")
@@ -41,15 +41,15 @@ class UserPoints(Base, TimestampMixin):
 
     __tablename__ = "user_points"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     user_id = Column(
-        Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True
+        BigInteger, ForeignKey("users.id"), unique=True, nullable=False, index=True
     )
     total_points = Column(Integer, default=0, nullable=False, comment="总积分")
     available_points = Column(Integer, default=0, nullable=False, comment="可用积分")
     used_points = Column(Integer, default=0, nullable=False, comment="已使用积分")
     level_id = Column(
-        Integer, ForeignKey("member_levels.id"), nullable=True, comment="当前等级"
+        BigInteger, ForeignKey("member_levels.id"), nullable=True, comment="当前等级"
     )
 
     user = relationship("User")
@@ -61,14 +61,14 @@ class PointsLog(Base, TimestampMixin):
 
     __tablename__ = "points_logs"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     points = Column(Integer, nullable=False, comment="积分变动（正数增加，负数减少）")
     reason = Column(String(100), nullable=False, comment="变动原因")
     related_type = Column(
         String(50), nullable=True, comment="关联类型: order/task/activity"
     )
-    related_id = Column(Integer, nullable=True, comment="关联ID")
+    related_id = Column(BigInteger, nullable=True, comment="关联ID")
     balance_after = Column(Integer, nullable=False, comment="变动后余额")
 
     user = relationship("User")
@@ -79,7 +79,7 @@ class Activity(Base, TimestampMixin):
 
     __tablename__ = "activities"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     activity_code = Column(
         String(50), unique=True, nullable=False, index=True, comment="活动代码"
     )
@@ -118,11 +118,11 @@ class ActivityParticipation(Base, TimestampMixin):
 
     __tablename__ = "activity_participations"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     activity_id = Column(
-        Integer, ForeignKey("activities.id"), nullable=False, index=True
+        BigInteger, ForeignKey("activities.id"), nullable=False, index=True
     )
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     participation_count = Column(Integer, default=1, nullable=False, comment="参与次数")
     rewards = Column(Text, nullable=True, comment="获得奖励，JSON格式")
 
@@ -135,8 +135,8 @@ class UserGrowth(Base, TimestampMixin):
 
     __tablename__ = "user_growth"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     task_type = Column(
         String(50), nullable=False, comment="任务类型: daily/weekly/achievement"
     )

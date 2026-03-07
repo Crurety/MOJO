@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Numeric, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from app.models.base import Base, TimestampMixin
 
@@ -6,8 +6,8 @@ from app.models.base import Base, TimestampMixin
 class Order(Base, TimestampMixin):
     __tablename__ = "orders"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     order_no = Column(String(50), unique=True, nullable=False, index=True, comment="订单编号")
     order_type = Column(String(20), nullable=False, comment="订单类型: permission/balance")
     product_name = Column(String(200), nullable=False, comment="商品名称")

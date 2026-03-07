@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, Enum
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Numeric, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from app.models.base import Base, TimestampMixin
 import enum
@@ -20,8 +20,8 @@ class PaymentMode(str, enum.Enum):
 class UserPermission(Base, TimestampMixin):
     __tablename__ = "user_permissions"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     permission_type = Column(String(20), nullable=False, comment="权限类型: script/image/video/ad")
     payment_mode = Column(String(20), nullable=False, comment="付费模式: per_use/monthly/yearly")
     total_count = Column(Integer, default=0, nullable=False, comment="总次数(按次付费)")
