@@ -1,9 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from './store'
 
-// 页面组件
 import Home from './pages/Home'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
@@ -17,41 +16,62 @@ import Gallery from './pages/works/Gallery'
 import Pricing from './pages/Pricing'
 import Account from './pages/account/Account'
 
-// 布局组件
 import Layout from './components/layout/Layout'
-
-// 样式
+import { I18nProvider } from './i18n'
 import './styles/index.css'
 
-// 路由守卫
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = useAuthStore.getState().isAuthenticated
-  
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" />
+    return <Navigate to="/login" replace />
   }
-  
+
   return <>{children}</>
 }
+
+const withLayout = (node: React.ReactNode) => <Layout>{node}</Layout>
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Layout children={<Home />} />} />
+        <Route path="/" element={withLayout(<Home />)} />
+        <Route path="/gallery" element={withLayout(<Gallery />)} />
+        <Route path="/pricing" element={withLayout(<Pricing />)} />
+
+        <Route
+          path="/create/script"
+          element={<ProtectedRoute>{withLayout(<ScriptCreate />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/create/image"
+          element={<ProtectedRoute>{withLayout(<ImageCreate />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/create/video"
+          element={<ProtectedRoute>{withLayout(<VideoCreate />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/create/ad"
+          element={<ProtectedRoute>{withLayout(<AdCreate />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/tasks"
+          element={<ProtectedRoute>{withLayout(<Tasks />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/works"
+          element={<ProtectedRoute>{withLayout(<Works />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/account"
+          element={<ProtectedRoute>{withLayout(<Account />)}</ProtectedRoute>}
+        />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
-        <Route path="/create/script" element={<ProtectedRoute children={<ScriptCreate />} />} />
-        <Route path="/create/image" element={<ProtectedRoute children={<ImageCreate />} />} />
-        <Route path="/create/video" element={<ProtectedRoute children={<VideoCreate />} />} />
-        <Route path="/create/ad" element={<ProtectedRoute children={<AdCreate />} />} />
-        
-        <Route path="/tasks" element={<ProtectedRoute children={<Tasks />} />} />
-        <Route path="/works" element={<ProtectedRoute children={<Works />} />} />
-        <Route path="/gallery" element={<Layout children={<Gallery />} />} />
-        <Route path="/pricing" element={<Layout children={<Pricing />} />} />
-        <Route path="/account" element={<ProtectedRoute children={<Account />} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   )
@@ -59,6 +79,8 @@ const App: React.FC = () => {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <I18nProvider>
+      <App />
+    </I18nProvider>
   </React.StrictMode>
 )

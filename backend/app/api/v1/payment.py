@@ -1,4 +1,4 @@
-﻿"""Payment API routes."""
+"""Payment API routes."""
 
 from __future__ import annotations
 
@@ -98,9 +98,25 @@ def _apply_paid_order_effects(
         db.refresh(user)
 
 
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/permissions/prices")
+def get_permission_prices(request: Request, db: Session = Depends(get_db)):
+    permission_service = PermissionService(db)
+    prices = permission_service.get_permission_prices()
+
+    return {
+        permission_type: {
+            payment_mode: float(amount)
+            for payment_mode, amount in mode_values.items()
+        }
+        for permission_type, mode_values in prices.items()
+    }
+
+
 @limiter.limit(RATE_LIMITS["payment"])
 @router.post("/orders", response_model=BaseResponse)
 def create_order(
+    request: Request,
     order_in: PermissionPurchase,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -137,6 +153,7 @@ def create_order(
 @limiter.limit(RATE_LIMITS["payment"])
 @router.post("/orders/balance", response_model=BaseResponse)
 def create_balance_order(
+    request: Request,
     amount: Decimal,
     payment_method: str,
     current_user: User = Depends(get_current_user),
@@ -168,6 +185,7 @@ def create_balance_order(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/orders", response_model=List[OrderResponse])
 def get_user_orders(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     status: int | None = Query(None),
@@ -182,6 +200,7 @@ def get_user_orders(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/orders/{order_no}", response_model=OrderResponse)
 def get_order_detail(
+    request: Request,
     order_no: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -196,6 +215,7 @@ def get_order_detail(
 @limiter.limit(RATE_LIMITS["payment"])
 @router.post("/orders/{order_no}/pay", response_model=BaseResponse)
 async def pay_order(
+    request: Request,
     order_no: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

@@ -1,5 +1,5 @@
 """优惠券API路由"""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.deps import get_current_user, get_current_admin
@@ -64,6 +64,7 @@ class UserCouponResponse(BaseModel):
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/coupons/claim", response_model=BaseResponse)
 def claim_coupon(
+    request: Request,
     coupon_code: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -92,6 +93,7 @@ def claim_coupon(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/coupons/my", response_model=List[UserCouponResponse])
 def get_my_coupons(
+    request: Request,
     status: int = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -114,6 +116,7 @@ def get_my_coupons(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/coupons/available")
 def get_available_coupons(
+    request: Request,
     order_amount: Decimal,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

@@ -1,17 +1,47 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime, timedelta
-from decimal import Decimal
-from typing import List, Optional
+from decimal import Decimal, InvalidOperation
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import BadRequestException
 from app.models import UserPermission
+from app.services.system_config_service import SystemConfigService
+
+PermissionPriceTable = Dict[str, Dict[str, Decimal]]
 
 
 class PermissionService:
+    PERMISSION_TYPES = ("script", "image", "video", "ad")
+    PAYMENT_MODES = ("per_use", "monthly", "yearly")
+
+    DEFAULT_PERMISSION_PRICES: PermissionPriceTable = {
+        "script": {"per_use": Decimal("1"), "monthly": Decimal("29"), "yearly": Decimal("199")},
+        "image": {"per_use": Decimal("3"), "monthly": Decimal("99"), "yearly": Decimal("699")},
+        "video": {"per_use": Decimal("5"), "monthly": Decimal("199"), "yearly": Decimal("1399")},
+        "ad": {"per_use": Decimal("8"), "monthly": Decimal("299"), "yearly": Decimal("1999")},
+    }
+
+    PRICE_DESCRIPTIONS = {
+        "script_price_per_use": "Script generation pay-per-use price",
+        "script_price_monthly": "Script generation monthly price",
+        "script_price_yearly": "Script generation yearly price",
+        "image_price_per_use": "Image generation pay-per-use price",
+        "image_price_monthly": "Image generation monthly price",
+        "image_price_yearly": "Image generation yearly price",
+        "video_price_per_use": "Video generation pay-per-use price",
+        "video_price_monthly": "Video generation monthly price",
+        "video_price_yearly": "Video generation yearly price",
+        "ad_price_per_use": "Ad design pay-per-use price",
+        "ad_price_monthly": "Ad design monthly price",
+        "ad_price_yearly": "Ad design yearly price",
+    }
+
     def __init__(self, db: Session):
         self.db = db
+        self.system_config_service = SystemConfigService(db)
 
     def get_user_permissions(self, user_id: int) -> List[UserPermission]:
         return (
@@ -40,20 +70,20 @@ class PermissionService:
     ):
         permission = self.get_permission(user_id, permission_type)
         if not permission:
-            result = (False, f"未开通{permission_type}权限")
+            result = (False, f"Permission {permission_type} is not enabled")
             return result if with_message else result[0]
 
         if permission.payment_mode == "per_use":
             remaining = permission.total_count - permission.used_count
             if remaining < required_count:
-                result = (False, f"使用次数不足，剩余{remaining}次")
+                result = (False, f"Insufficient usage count, remaining {remaining}")
                 return result if with_message else result[0]
         else:
             if permission.expire_at and permission.expire_at < datetime.now():
-                result = (False, "权限已过期")
+                result = (False, "Permission has expired")
                 return result if with_message else result[0]
 
-        result = (True, "权限有效")
+        result = (True, "Permission is valid")
         return result if with_message else result[0]
 
     def use_permission(self, user_id: int, permission_type: str, count: int = 1) -> bool:
@@ -123,11 +153,94 @@ class PermissionService:
         self.db.refresh(permission)
         return permission
 
+    @staticmethod
+    def _build_price_config_key(permission_type: str, payment_mode: str) -> str:
+        return f"{permission_type}_price_{payment_mode}"
+
+    @staticmethod
+    def _decimal_to_config_value(value: Decimal) -> str:
+        text = format(value.quantize(Decimal("0.01")), "f")
+        if "." in text:
+            text = text.rstrip("0").rstrip(".")
+        return text or "0"
+
+    def get_permission_prices(self) -> PermissionPriceTable:
+        keys = [
+            self._build_price_config_key(permission_type, payment_mode)
+            for permission_type in self.PERMISSION_TYPES
+            for payment_mode in self.PAYMENT_MODES
+        ]
+        config_values = self.system_config_service.get_values(keys)
+
+        result: PermissionPriceTable = {}
+        for permission_type in self.PERMISSION_TYPES:
+            result[permission_type] = {}
+            for payment_mode in self.PAYMENT_MODES:
+                key = self._build_price_config_key(permission_type, payment_mode)
+                default_value = self.DEFAULT_PERMISSION_PRICES[permission_type][payment_mode]
+                raw = config_values.get(key)
+
+                if raw is None:
+                    result[permission_type][payment_mode] = default_value
+                    continue
+
+                try:
+                    value = Decimal(str(raw))
+                    if value < 0:
+                        raise InvalidOperation
+                    result[permission_type][payment_mode] = value
+                except (InvalidOperation, ValueError, TypeError):
+                    result[permission_type][payment_mode] = default_value
+
+        return result
+
+    def normalize_permission_prices(self, prices: dict) -> PermissionPriceTable:
+        if not isinstance(prices, dict):
+            raise BadRequestException(detail="Invalid price payload")
+
+        normalized: PermissionPriceTable = {}
+
+        for permission_type in self.PERMISSION_TYPES:
+            mode_values = prices.get(permission_type)
+            if not isinstance(mode_values, dict):
+                raise BadRequestException(detail=f"Missing pricing section: {permission_type}")
+
+            normalized[permission_type] = {}
+            for payment_mode in self.PAYMENT_MODES:
+                raw_value = mode_values.get(payment_mode)
+                if raw_value is None:
+                    raise BadRequestException(
+                        detail=f"Missing pricing value: {permission_type}.{payment_mode}"
+                    )
+
+                try:
+                    value = Decimal(str(raw_value))
+                except (InvalidOperation, ValueError, TypeError):
+                    raise BadRequestException(
+                        detail=f"Invalid pricing value: {permission_type}.{payment_mode}"
+                    )
+
+                if value < 0:
+                    raise BadRequestException(
+                        detail=f"Pricing value must be non-negative: {permission_type}.{payment_mode}"
+                    )
+
+                normalized[permission_type][payment_mode] = value.quantize(Decimal("0.01"))
+
+        return normalized
+
+    def save_permission_prices(self, prices: PermissionPriceTable) -> None:
+        values: Dict[str, str] = {}
+        descriptions: Dict[str, str] = {}
+
+        for permission_type, mode_values in prices.items():
+            for payment_mode, value in mode_values.items():
+                key = self._build_price_config_key(permission_type, payment_mode)
+                values[key] = self._decimal_to_config_value(value)
+                descriptions[key] = self.PRICE_DESCRIPTIONS.get(key, "Permission pricing config")
+
+        self.system_config_service.set_values(values, descriptions)
+
     def get_permission_price(self, permission_type: str, payment_mode: str) -> Decimal:
-        prices = {
-            "script": {"per_use": 1, "monthly": 29, "yearly": 199},
-            "image": {"per_use": 3, "monthly": 99, "yearly": 699},
-            "video": {"per_use": 5, "monthly": 199, "yearly": 1399},
-            "ad": {"per_use": 8, "monthly": 299, "yearly": 1999},
-        }
-        return Decimal(prices.get(permission_type, {}).get(payment_mode, 0))
+        prices = self.get_permission_prices()
+        return prices.get(permission_type, {}).get(payment_mode, Decimal("0"))

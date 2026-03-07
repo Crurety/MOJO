@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { adminApi } from '../api'
+import { useI18n } from '../i18n'
 import * as Types from '../types/api'
 
 const UserManagement: React.FC = () => {
@@ -8,31 +9,29 @@ const UserManagement: React.FC = () => {
   const [filter, setFilter] = useState<{ status?: number }>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(20)
+  const { t } = useI18n()
 
   useEffect(() => {
+    const loadUsers = async () => {
+      setLoading(true)
+      try {
+        const data = await adminApi.getUsers((currentPage - 1) * pageSize, pageSize, filter.status)
+        setUsers(data || [])
+      } catch (error) {
+        console.error('Failed to load users:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadUsers()
   }, [filter, currentPage, pageSize])
-
-  const loadUsers = async () => {
-    setLoading(true)
-    try {
-      const data = await adminApi.getUsers(
-        (currentPage - 1) * pageSize,
-        pageSize,
-        filter.status
-      )
-      setUsers(data || [])
-    } catch (error) {
-      console.error('Failed to load users:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleUpdateStatus = async (userId: number, status: number) => {
     try {
       await adminApi.updateUserStatus(userId, status)
-      loadUsers()
+      const refreshed = await adminApi.getUsers((currentPage - 1) * pageSize, pageSize, filter.status)
+      setUsers(refreshed || [])
     } catch (error) {
       console.error('Failed to update user status:', error)
     }
@@ -41,11 +40,11 @@ const UserManagement: React.FC = () => {
   const getStatusLabel = (status: number) => {
     switch (status) {
       case 0:
-        return '禁用'
+        return t('user.status.disabled')
       case 1:
-        return '正常'
+        return t('user.status.active')
       default:
-        return '未知'
+        return t('user.status.unknown')
     }
   }
 
@@ -63,44 +62,45 @@ const UserManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">用户管理</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('user.title')}</h1>
         <select
-          value={filter.status || ''}
-          onChange={(e) => setFilter({ status: e.target.value ? parseInt(e.target.value) : undefined })}
-          className="px-3 py-2 border rounded-md text-sm"
+          value={filter.status ?? ''}
+          onChange={(e) => setFilter({ status: e.target.value ? Number.parseInt(e.target.value, 10) : undefined })}
+          className="rounded-md border px-3 py-2 text-sm"
+          aria-label={t('user.filterStatus')}
         >
-          <option value="">全部状态</option>
-          <option value="0">禁用</option>
-          <option value="1">正常</option>
+          <option value="">{t('common.allStatuses')}</option>
+          <option value="0">{t('user.status.disabled')}</option>
+          <option value="1">{t('user.status.active')}</option>
         </select>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>昵称</th>
-                <th>邮箱</th>
-                <th>手机号</th>
-                <th>余额</th>
-                <th>状态</th>
-                <th>注册时间</th>
-                <th>操作</th>
+                <th>{t('user.column.id')}</th>
+                <th>{t('user.column.nickname')}</th>
+                <th>{t('user.column.email')}</th>
+                <th>{t('user.column.phone')}</th>
+                <th>{t('user.column.balance')}</th>
+                <th>{t('user.column.status')}</th>
+                <th>{t('user.column.registeredAt')}</th>
+                <th>{t('user.column.action')}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-gray-500 py-4">
-                    加载中...
+                  <td colSpan={8} className="py-4 text-center text-gray-500">
+                    {t('common.loading')}
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-gray-500 py-4">
-                    暂无用户
+                  <td colSpan={8} className="py-4 text-center text-gray-500">
+                    {t('user.noUsers')}
                   </td>
                 </tr>
               ) : (
@@ -110,9 +110,12 @@ const UserManagement: React.FC = () => {
                     <td>{user.nickname}</td>
                     <td>{user.email || '-'}</td>
                     <td>{user.phone || '-'}</td>
-                    <td>¥{user.balance || 0}</td>
                     <td>
-                      <span className={`inline-block px-2 py-1 rounded text-xs ${getStatusClass(user.status)}`}>
+                      {t('common.currency')}
+                      {user.balance || 0}
+                    </td>
+                    <td>
+                      <span className={`inline-block rounded px-2 py-1 text-xs ${getStatusClass(user.status)}`}>
                         {getStatusLabel(user.status)}
                       </span>
                     </td>
@@ -120,13 +123,14 @@ const UserManagement: React.FC = () => {
                     <td>
                       <button
                         onClick={() => handleUpdateStatus(user.id, user.status === 1 ? 0 : 1)}
-                        className={`px-2 py-1 text-xs rounded ${
+                        className={`rounded px-2 py-1 text-xs ${
                           user.status === 1
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                         }`}
+                        type="button"
                       >
-                        {user.status === 1 ? '禁用' : '启用'}
+                        {user.status === 1 ? t('user.disable') : t('user.enable')}
                       </button>
                     </td>
                   </tr>
@@ -135,23 +139,23 @@ const UserManagement: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <div className="p-4 flex items-center justify-between border-t border-gray-200">
-          <div className="text-sm text-gray-500">
-            共 {users.length} 条记录
-          </div>
+        <div className="flex items-center justify-between border-t border-gray-200 p-4">
+          <div className="text-sm text-gray-500">{t('common.totalRecords', { count: users.length })}</div>
           <div className="flex space-x-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+              className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              type="button"
             >
-              上一页
+              {t('common.previousPage')}
             </button>
             <button
               onClick={() => setCurrentPage((prev) => prev + 1)}
-              className="px-3 py-1 border rounded-md text-sm"
+              className="rounded-md border px-3 py-1 text-sm"
+              type="button"
             >
-              下一页
+              {t('common.nextPage')}
             </button>
           </div>
         </div>
@@ -161,3 +165,4 @@ const UserManagement: React.FC = () => {
 }
 
 export default UserManagement
+

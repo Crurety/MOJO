@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { paymentApi } from '../api'
+import { translateStatic } from '../i18n'
+
+export type PermissionType = 'script' | 'image' | 'video' | 'ad'
+export type PaymentMode = 'per_use' | 'monthly' | 'yearly'
+export type PermissionPrices = Record<PermissionType, Record<PaymentMode, number>>
 
 export const usePayment = () => {
   const [loading, setLoading] = useState(false)
 
   const createPermissionOrder = async (data: {
-    permission_type: string
-    payment_mode: string
+    permission_type: PermissionType
+    payment_mode: PaymentMode
     payment_method: string
     count?: number
   }) => {
@@ -15,7 +20,7 @@ export const usePayment = () => {
       const response = await paymentApi.createOrder(data)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '创建订单失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.createOrderFailed') }
     } finally {
       setLoading(false)
     }
@@ -27,7 +32,7 @@ export const usePayment = () => {
       const response = await paymentApi.createBalanceOrder(amount, paymentMethod)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '创建订单失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.createOrderFailed') }
     } finally {
       setLoading(false)
     }
@@ -39,7 +44,7 @@ export const usePayment = () => {
       const response = await paymentApi.getOrders(skip, limit, status)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取订单失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.fetchOrderFailed') }
     } finally {
       setLoading(false)
     }
@@ -51,7 +56,10 @@ export const usePayment = () => {
       const response = await paymentApi.getOrder(orderNo)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取订单详情失败' }
+      return {
+        success: false,
+        message: error.response?.data?.message || translateStatic('hook.payment.fetchOrderDetailFailed'),
+      }
     } finally {
       setLoading(false)
     }
@@ -63,7 +71,7 @@ export const usePayment = () => {
       const response = await paymentApi.payOrder(orderNo)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '支付失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.payFailed') }
     } finally {
       setLoading(false)
     }
@@ -79,44 +87,35 @@ export const usePayment = () => {
   }
 }
 
-export const PRICING_PLANS = {
+export const DEFAULT_PERMISSION_PRICES: PermissionPrices = {
   script: {
-    name: '文字生成脚本',
-    icon: '📝',
     per_use: 1,
     monthly: 29,
     yearly: 199,
-    description: '智能生成创作脚本，支持多种输出类型',
   },
   image: {
-    name: '图片生成',
-    icon: '🖼️',
     per_use: 3,
     monthly: 99,
     yearly: 699,
-    description: 'AI图片生成，支持多种风格和分辨率',
   },
   video: {
-    name: '视频生成',
-    icon: '🎬',
     per_use: 5,
     monthly: 199,
     yearly: 1399,
-    description: 'AI视频生成，支持自定义时长和风格',
   },
   ad: {
-    name: '广告设计',
-    icon: '📢',
     per_use: 8,
     monthly: 299,
     yearly: 1999,
-    description: '智能广告创意设计，图文视频全覆盖',
   },
 }
 
+// Backward-compatible alias for existing imports.
+export const PRICING_PLANS = DEFAULT_PERMISSION_PRICES
+
 export const PAYMENT_METHODS = [
-  { value: 'balance', label: '余额支付', icon: '💰' },
-  { value: 'wechat', label: '微信支付', icon: '💚' },
-  { value: 'alipay', label: '支付宝', icon: '💙' },
-  { value: 'unionpay', label: '银联支付', icon: '💳' },
-]
+  { value: 'balance' },
+  { value: 'wechat' },
+  { value: 'alipay' },
+  { value: 'unionpay' },
+] as const

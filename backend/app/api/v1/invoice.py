@@ -1,10 +1,10 @@
-﻿"""Invoice API routes."""
+"""Invoice API routes."""
 
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -84,6 +84,7 @@ class InvoiceResponse(BaseModel):
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/real-name/submit", response_model=BaseResponse)
 def submit_real_name(
+    request: Request,
     real_name_in: RealNameSubmit,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -102,6 +103,7 @@ def submit_real_name(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/real-name/status")
 def get_real_name_status(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -115,6 +117,7 @@ def get_real_name_status(
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/invoices", response_model=BaseResponse)
 def create_invoice(
+    request: Request,
     invoice_in: InvoiceCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -141,6 +144,7 @@ def create_invoice(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/invoices", response_model=List[InvoiceResponse])
 def get_my_invoices(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -154,6 +158,7 @@ def get_my_invoices(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/invoices/{invoice_no}", response_model=InvoiceResponse)
 def get_invoice(
+    request: Request,
     invoice_no: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

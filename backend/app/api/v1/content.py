@@ -1,8 +1,8 @@
-﻿"""Content API routes."""
+"""Content API routes."""
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -29,6 +29,7 @@ router = APIRouter()
 @limiter.limit(RATE_LIMITS["content"])
 @router.post("/scripts", response_model=BaseResponse)
 def create_script(
+    request: Request,
     script_in: ScriptCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -58,6 +59,7 @@ def create_script(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/scripts", response_model=List[ScriptResponse])
 def get_user_scripts(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -71,6 +73,7 @@ def get_user_scripts(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/scripts/{script_id}", response_model=ScriptResponse)
 def get_script(
+    request: Request,
     script_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -85,6 +88,7 @@ def get_script(
 @limiter.limit(RATE_LIMITS["content"])
 @router.put("/scripts/{script_id}", response_model=BaseResponse)
 def update_script(
+    request: Request,
     script_id: int,
     script_in: ScriptUpdate,
     current_user: User = Depends(get_current_user),
@@ -101,6 +105,7 @@ def update_script(
 @limiter.limit(RATE_LIMITS["content"])
 @router.delete("/scripts/{script_id}", response_model=BaseResponse)
 def delete_script(
+    request: Request,
     script_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -115,6 +120,7 @@ def delete_script(
 @limiter.limit(RATE_LIMITS["content"])
 @router.post("/tasks", response_model=BaseResponse)
 def create_task(
+    request: Request,
     task_in: TaskCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -169,6 +175,7 @@ def create_task(
 @limiter.limit(RATE_LIMITS["content"])
 @router.post("/tasks/image", response_model=BaseResponse)
 def create_image_task(
+    request: Request,
     payload: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -180,6 +187,7 @@ def create_image_task(
 @limiter.limit(RATE_LIMITS["content"])
 @router.post("/tasks/video", response_model=BaseResponse)
 def create_video_task(
+    request: Request,
     payload: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -191,6 +199,7 @@ def create_video_task(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/tasks", response_model=List[TaskResponse])
 def get_user_tasks(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     status: Optional[int] = Query(None),
@@ -206,6 +215,7 @@ def get_user_tasks(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/tasks/{task_ref}", response_model=TaskResponse)
 def get_task(
+    request: Request,
     task_ref: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -226,6 +236,7 @@ def get_task(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/works", response_model=List[WorkResponse])
 def get_user_works(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     work_type: Optional[str] = Query(None),
@@ -240,6 +251,7 @@ def get_user_works(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/works/{work_id}", response_model=WorkResponse)
 def get_work(
+    request: Request,
     work_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -254,6 +266,7 @@ def get_work(
 @limiter.limit(RATE_LIMITS["content"])
 @router.delete("/works/{work_id}", response_model=BaseResponse)
 def delete_work(
+    request: Request,
     work_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -268,6 +281,7 @@ def delete_work(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/gallery", response_model=List[WorkResponse])
 def get_gallery(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     work_type: Optional[str] = Query(None),

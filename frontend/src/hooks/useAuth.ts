@@ -1,5 +1,7 @@
-import { useAuthStore, usePermissionStore } from '../store'
 import { authApi, userApi } from '../api'
+import { translateStatic } from '../i18n'
+import type { User } from '../types/api'
+import { useAuthStore, usePermissionStore } from '../store'
 
 export const useAuth = () => {
   const { user, token, isAuthenticated, setAuth, logout, updateUser } = useAuthStore()
@@ -10,7 +12,7 @@ export const useAuth = () => {
       setAuth(response.user, response.token.access_token)
       return { success: true }
     }
-    return { success: false, message: '登录失败' }
+    return { success: false, message: translateStatic('hook.auth.loginFailed') }
   }
 
   const register = async (data: { email?: string; phone?: string; password: string; nickname?: string }) => {
@@ -21,16 +23,16 @@ export const useAuth = () => {
   const fetchCurrentUser = async () => {
     if (!token) return null
     try {
-      const user = await authApi.getCurrentUser()
-      updateUser(user)
-      return user
+      const currentUser = await authApi.getCurrentUser()
+      updateUser(currentUser)
+      return currentUser
     } catch {
       logout()
       return null
     }
   }
 
-  const updateProfile = async (data: any) => {
+  const updateProfile = async (data: Partial<User>) => {
     const response = await authApi.updateProfile(data)
     updateUser(data)
     return response

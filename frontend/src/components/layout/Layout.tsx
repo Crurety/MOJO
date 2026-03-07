@@ -1,135 +1,186 @@
-import React from 'react'
+﻿import React, { useMemo, useState } from 'react'
+import {
+  AppstoreOutlined,
+  CloseOutlined,
+  DeploymentUnitOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  FolderOpenOutlined,
+  HomeOutlined,
+  MenuOutlined,
+  NotificationOutlined,
+  PictureOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
-import { useAuthStore, useUIStore } from '../../store'
+import { useI18n } from '../../i18n'
+import { useAuthStore } from '../../store'
+import { toLocalizedAmount } from '../../utils/currency'
+import { LanguageSwitcher } from '../common'
+import MeteorField from './MeteorField'
+
+type NavItem = {
+  path: string
+  labelKey: string
+  icon: React.ReactNode
+  requireAuth?: boolean
+}
+
+const navItems: NavItem[] = [
+  { path: '/', labelKey: 'nav.home', icon: <HomeOutlined /> },
+  { path: '/create/script', labelKey: 'nav.script', icon: <FileTextOutlined />, requireAuth: true },
+  { path: '/create/image', labelKey: 'nav.image', icon: <PictureOutlined />, requireAuth: true },
+  { path: '/create/video', labelKey: 'nav.video', icon: <VideoCameraOutlined />, requireAuth: true },
+  { path: '/create/ad', labelKey: 'nav.ad', icon: <NotificationOutlined />, requireAuth: true },
+  { path: '/works', labelKey: 'nav.works', icon: <FolderOpenOutlined />, requireAuth: true },
+  { path: '/tasks', labelKey: 'nav.tasks', icon: <DeploymentUnitOutlined />, requireAuth: true },
+  { path: '/gallery', labelKey: 'nav.gallery', icon: <AppstoreOutlined /> },
+  { path: '/pricing', labelKey: 'nav.pricing', icon: <DollarOutlined /> },
+]
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated, logout } = useAuthStore()
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const location = useLocation()
+  const { user, isAuthenticated, logout } = useAuthStore()
+  const { language, t } = useI18n()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const navItems = [
-    { path: '/', label: '首页', icon: '🏠' },
-    { path: '/create/script', label: '脚本生成', icon: '📝' },
-    { path: '/create/image', label: '图片生成', icon: '🖼️' },
-    { path: '/create/video', label: '视频生成', icon: '🎬' },
-    { path: '/create/ad', label: '广告设计', icon: '📢' },
-    { path: '/works', label: '我的作品', icon: '📁' },
-    { path: '/tasks', label: '任务中心', icon: '⏳' },
-    { path: '/gallery', label: '作品集', icon: '🎨' },
-    { path: '/pricing', label: '价格方案', icon: '💰' },
-  ]
+  const visibleItems = useMemo(
+    () => navItems.filter((item) => !item.requireAuth || isAuthenticated),
+    [isAuthenticated]
+  )
+
+  const headerItems = useMemo(() => visibleItems.slice(0, 5), [visibleItems])
+
+  const isItemActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/'
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`)
+  }
+
+  const closeMobileMenu = () => setMobileMenuOpen(false)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 lg:hidden"
+    <div className="app-shell min-h-screen">
+      <MeteorField />
+
+      <header className="sticky top-0 z-40 border-b border-[rgba(132,179,219,0.24)] bg-[rgba(3,9,18,0.78)] backdrop-blur-xl">
+        <div className="mx-auto flex h-20 w-full max-w-[1360px] items-center justify-between gap-3 px-4 lg:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="inline-flex h-10 w-10 items-center justify-center border border-[rgba(132,179,219,0.34)] bg-[rgba(5,16,30,0.92)] text-[#d9f2ff] lg:hidden"
+              aria-label={t('layout.mobileMenuToggle')}
+            >
+              {mobileMenuOpen ? <CloseOutlined /> : <MenuOutlined />}
+            </button>
+
+            <Link to="/" className="flex items-center">
+              <div>
+                <p className="brand-gradient text-[1.55rem] font-bold leading-none">MOJO</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#7da5c8]">
+                  Creative Orbit Lab
+                </p>
+              </div>
+            </Link>
+          </div>
+
+          <nav className="hidden items-center gap-2 lg:flex">
+            {headerItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-chip ${isItemActive(item.path) ? 'nav-chip-active' : ''}`}
               >
-                <span className="text-xl">{sidebarCollapsed ? '☰' : '✕'}</span>
-              </button>
-              <Link to="/" className="flex items-center ml-2 lg:ml-0">
-                <span className="text-2xl font-bold text-indigo-600">AI创作平台</span>
+                <span className="text-[14px] leading-none">{item.icon}</span>
+                <span>{t(item.labelKey)}</span>
               </Link>
-            </div>
+            ))}
+          </nav>
 
-            <nav className="hidden lg:flex space-x-4">
-              {navItems.slice(0, 5).map((item) => (
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher className="hidden sm:inline-flex" />
+            {isAuthenticated ? (
+              <>
                 <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    location.pathname === item.path
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+                  to="/account"
+                  className="hidden border border-[rgba(132,179,219,0.3)] bg-[rgba(8,20,38,0.84)] px-3 py-1 text-sm font-medium text-[#daf1ff] sm:inline-flex"
                 >
-                  <span className="mr-1">{item.icon}</span>
-                  {item.label}
+                  {user?.nickname || t('layout.accountDefault')}
                 </Link>
-              ))}
-            </nav>
-
-            <div className="flex items-center space-x-4">
-              {isAuthenticated ? (
-                <>
-                  <Link
-                    to="/account"
-                    className="flex items-center text-gray-600 hover:text-gray-900"
-                  >
-                    <span className="text-xl mr-2">👤</span>
-                    <span className="hidden sm:inline">{user?.nickname}</span>
-                  </Link>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-indigo-600 font-medium">
-                    ¥{user?.balance?.toFixed(2) || '0.00'}
-                  </span>
-                  <button
-                    onClick={logout}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    退出
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    登录
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-                  >
-                    注册
-                  </Link>
-                </>
-              )}
-            </div>
+                <span className="hidden border border-[rgba(120,238,255,0.4)] bg-[rgba(9,34,45,0.7)] px-3 py-1 text-sm font-semibold text-[#9ff4ff] sm:inline-flex">
+                  {t('layout.balance')} {t('common.currency')}
+                  {toLocalizedAmount(user?.balance ?? 0, language, { zhFractionDigits: 2, enFractionDigits: 2 })}
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="border border-[rgba(132,179,219,0.34)] bg-[rgba(5,16,30,0.92)] px-4 py-2 text-sm font-semibold text-[#d9f2ff] transition hover:border-[rgba(156,211,255,0.54)] hover:bg-[rgba(11,29,50,0.92)]"
+                >
+                  {t('layout.logout')}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="border border-[rgba(132,179,219,0.34)] bg-[rgba(5,16,30,0.9)] px-4 py-2 text-sm font-semibold text-[#d9f2ff] transition hover:border-[rgba(156,211,255,0.54)] hover:bg-[rgba(11,29,50,0.92)]"
+                >
+                  {t('layout.login')}
+                </Link>
+                <Link
+                  to="/register"
+                  className="border border-[rgba(151,232,255,0.52)] bg-gradient-to-r from-[#12435d] to-[#2ea9d3] px-4 py-2 text-sm font-semibold text-[#f5fbff] transition hover:brightness-110"
+                >
+                  {t('layout.register')}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="flex">
+      <div className="mx-auto flex w-full max-w-[1360px] gap-6 px-4 pb-8 pt-6 lg:px-8 lg:pt-8">
         <aside
-          className={`${
-            sidebarCollapsed ? '-translate-x-full' : 'translate-x-0'
-          } fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:w-64 pt-16 lg:pt-0`}
+          className={`fixed inset-x-4 top-[92px] z-30 border border-[rgba(132,179,219,0.3)] bg-[rgba(4,14,28,0.95)] p-4 backdrop-blur-lg transition lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-8rem)] lg:w-64 lg:flex-none lg:overflow-y-auto ${
+            mobileMenuOpen ? 'block' : 'hidden'
+          }`}
         >
-          <nav className="mt-5 px-2">
-            {navItems.map((item) => (
+          <div className="mb-3 flex items-center justify-between px-2">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8ab3d6]">{t('layout.navigation')}</p>
+            <LanguageSwitcher className="sm:hidden" />
+          </div>
+          <nav className="space-y-1">
+            {visibleItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                  location.pathname === item.path
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                onClick={closeMobileMenu}
+                className={`group flex items-center gap-3 border-l px-3 py-2.5 text-sm font-medium transition ${
+                  isItemActive(item.path)
+                    ? 'border-[rgba(157,227,255,0.9)] bg-[rgba(11,36,56,0.86)] text-[#eaf8ff]'
+                    : 'border-[rgba(132,179,219,0.16)] text-[#8eb1ce] hover:border-[rgba(151,232,255,0.44)] hover:bg-[rgba(7,24,40,0.82)] hover:text-[#dff4ff]'
                 }`}
               >
-                <span className="text-xl mr-3">{item.icon}</span>
-                {item.label}
+                <span className="text-[15px] leading-none">{item.icon}</span>
+                <span>{t(item.labelKey)}</span>
               </Link>
             ))}
           </nav>
         </aside>
 
-        <main className="flex-1 min-w-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </div>
+        <main className="min-w-0 flex-1">
+          <div className="panel-surface page-enter">{children}</div>
         </main>
       </div>
 
-      {sidebarCollapsed && (
-        <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={toggleSidebar}
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-20 bg-[rgba(2,7,14,0.6)] backdrop-blur-[2px] lg:hidden"
+          onClick={closeMobileMenu}
+          aria-label={t('layout.closeMenu')}
         />
       )}
     </div>

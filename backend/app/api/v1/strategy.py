@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ router = APIRouter()
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/sign-in", response_model=BaseResponse)
 def daily_sign_in(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """每日签到"""
@@ -42,6 +43,7 @@ def daily_sign_in(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/sign-in/status")
 def get_sign_in_status(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取签到状态"""
@@ -87,6 +89,7 @@ def get_sign_in_status(
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/new-user/claim", response_model=BaseResponse)
 def claim_new_user_rewards(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """领取新用户奖励"""
@@ -102,6 +105,7 @@ def claim_new_user_rewards(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/new-user/status")
 def get_new_user_reward_status(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取新用户奖励状态"""
@@ -151,7 +155,7 @@ def claim_invite_reward(
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/invite/my-code")
-def get_my_invite_code(current_user: User = Depends(get_current_user)):
+def get_my_invite_code(request: Request, current_user: User = Depends(get_current_user)):
     """获取我的邀请码"""
     return {
         "invite_code": current_user.invite_code,
@@ -162,6 +166,7 @@ def get_my_invite_code(current_user: User = Depends(get_current_user)):
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/invite/statistics")
 def get_invite_statistics(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取邀请统计"""
@@ -218,7 +223,7 @@ def claim_share_reward(
 # 月度活动
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/monthly-activity/current")
-def get_current_monthly_activity(db: Session = Depends(get_db)):
+def get_current_monthly_activity(request: Request, db: Session = Depends(get_db)):
     """获取当前月度活动"""
     from datetime import datetime
 

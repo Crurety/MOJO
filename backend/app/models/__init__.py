@@ -14,6 +14,7 @@ from app.models.message import Message
 from app.models.order import Order
 from app.models.permission import UserPermission
 from app.models.script import Script
+from app.models.system_config import SystemConfig
 from app.models.task import Task
 from app.models.ticket import Feedback, Ticket, TicketReply
 from app.models.user import User
@@ -23,6 +24,7 @@ __all__ = [
     "Base",
     "User",
     "UserPermission",
+    "SystemConfig",
     "Script",
     "Work",
     "Task",

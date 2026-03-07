@@ -1,23 +1,136 @@
-import React, { useState } from 'react'
-import { Layout, Card, Button } from '../components'
-import { usePayment, PRICING_PLANS, PAYMENT_METHODS } from '../hooks'
-import { useAuth } from '../hooks'
+﻿import React, { useEffect, useMemo, useState } from 'react'
+import {
+  AlipayCircleOutlined,
+  CheckOutlined,
+  CreditCardOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  NotificationOutlined,
+  PictureOutlined,
+  VideoCameraOutlined,
+  WalletOutlined,
+  WechatOutlined,
+} from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { paymentApi } from '../api'
+import { Button } from '../components'
+import {
+  useAuth,
+  usePayment,
+  PAYMENT_METHODS,
+  PRICING_PLANS,
+  type PermissionPrices,
+} from '../hooks'
+import { useI18n } from '../i18n'
+import { toLocalizedAmount } from '../utils/currency'
+
+type PaymentMode = 'per_use' | 'monthly' | 'yearly'
+type PlanKey = keyof typeof PRICING_PLANS
+
+const modeList: PaymentMode[] = ['per_use', 'monthly', 'yearly']
+
+const planIcons: Record<PlanKey, React.ReactNode> = {
+  script: <FileTextOutlined />,
+  image: <PictureOutlined />,
+  video: <VideoCameraOutlined />,
+  ad: <NotificationOutlined />,
+}
+
+const paymentIcons: Record<string, React.ReactNode> = {
+  balance: <WalletOutlined />,
+  wechat: <WechatOutlined />,
+  alipay: <AlipayCircleOutlined />,
+  unionpay: <CreditCardOutlined />,
+}
+
+const cloneDefaultPrices = (): PermissionPrices => ({
+  script: { ...PRICING_PLANS.script },
+  image: { ...PRICING_PLANS.image },
+  video: { ...PRICING_PLANS.video },
+  ad: { ...PRICING_PLANS.ad },
+})
+
+const parsePermissionPrices = (raw: unknown): PermissionPrices | null => {
+  if (!raw || typeof raw !== 'object') {
+    return null
+  }
+
+  const source = raw as Record<string, unknown>
+  const plans: PlanKey[] = ['script', 'image', 'video', 'ad']
+  const modes: PaymentMode[] = ['per_use', 'monthly', 'yearly']
+
+  const result = cloneDefaultPrices()
+
+  for (const plan of plans) {
+    const modeValues = source[plan]
+    if (!modeValues || typeof modeValues !== 'object') {
+      return null
+    }
+
+    for (const mode of modes) {
+      const value = (modeValues as Record<string, unknown>)[mode]
+      if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
+        return null
+      }
+      result[plan][mode] = value
+    }
+  }
+
+  return result
+}
 
 const Pricing: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const { createPermissionOrder, loading } = usePayment()
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
-  const [selectedMode, setSelectedMode] = useState<'per_use' | 'monthly' | 'yearly'>('per_use')
+  const { language, t } = useI18n()
+
+  const [pricePlans, setPricePlans] = useState<PermissionPrices>(cloneDefaultPrices)
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(null)
+  const [selectedMode, setSelectedMode] = useState<PaymentMode>('per_use')
   const [selectedMethod, setSelectedMethod] = useState<string>('wechat')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
-  const handleSelectPlan = (plan: string) => {
+  useEffect(() => {
+    let active = true
+
+    const loadPermissionPrices = async () => {
+      try {
+        const response = await paymentApi.getPermissionPrices()
+        const parsed = parsePermissionPrices(response)
+        if (active && parsed) {
+          setPricePlans(parsed)
+        }
+      } catch (error) {
+        console.error('Failed to load permission prices:', error)
+      }
+    }
+
+    void loadPermissionPrices()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const planEntries = useMemo(
+    () => Object.entries(pricePlans) as [PlanKey, PermissionPrices[PlanKey]][],
+    [pricePlans]
+  )
+
+  const getPrice = (plan: PlanKey, mode: PaymentMode) =>
+    toLocalizedAmount(pricePlans[plan][mode], language, { zhFractionDigits: 0, enFractionDigits: 2 })
+  const getPlanName = (plan: PlanKey) => t(`pricing.planName.${plan}`)
+  const getPlanDescription = (plan: PlanKey) => t(`pricing.planDesc.${plan}`)
+  const getPlanTag = (plan: PlanKey) => t(`pricing.planTag.${plan}`) || t('pricing.planTag.default')
+  const getPlanHighlights = (plan: PlanKey) => [t(`pricing.planHighlight.${plan}.1`), t(`pricing.planHighlight.${plan}.2`)]
+
+  const handleSelectPlan = (plan: PlanKey) => {
     if (!isAuthenticated) {
       navigate('/login')
       return
     }
+
     setSelectedPlan(plan)
     setShowPaymentModal(true)
   }
@@ -32,113 +145,158 @@ const Pricing: React.FC = () => {
     })
 
     if (result.success) {
-      const { pay_url } = result.data as any
-      if (pay_url) {
-        window.open(pay_url, '_blank')
-      }
+      const payUrl = (result.data as { pay_url?: string }).pay_url
+      if (payUrl) window.open(payUrl, '_blank')
       setShowPaymentModal(false)
       navigate('/tasks')
     }
   }
 
-  const getPrice = (plan: string, mode: 'per_use' | 'monthly' | 'yearly') => {
-    const planData = PRICING_PLANS[plan as keyof typeof PRICING_PLANS]
-    if (!planData) return 0
-    return planData[mode]
-  }
-
   return (
-    <Layout>
-      <div className="space-y-12">
-        <section className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">价格方案</h1>
-          <p className="text-xl text-gray-600">选择适合您的付费模式</p>
-        </section>
+    <div className="space-y-9 text-[#e8f4ff]">
+      <section className="section-shell relative overflow-hidden border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-10 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(96,226,255,0.15),transparent_42%,rgba(80,141,255,0.12)_78%,transparent)]" />
 
-        <div className="flex justify-center space-x-4">
-          {(['per_use', 'monthly', 'yearly'] as const).map((mode) => (
-            <button
-              key={mode}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                selectedMode === mode
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-              onClick={() => setSelectedMode(mode)}
-            >
-              {mode === 'per_use' ? '按次付费' : mode === 'monthly' ? '月度订阅' : '年度订阅'}
-            </button>
-          ))}
+        <div className="relative">
+          <span className="inline-flex border border-[rgba(151,232,255,0.52)] bg-[rgba(11,36,56,0.86)] px-3 py-1 text-xs font-bold tracking-[0.14em] text-[#c7eeff]">
+            {t('pricing.badge')}
+          </span>
+          <h1 className="mt-4 text-3xl font-bold text-[#f2fbff] sm:text-4xl">{t('pricing.title')}</h1>
+          <p className="mt-3 max-w-3xl text-base leading-7 text-[#96b5cf]">{t('pricing.subtitle')}</p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {modeList.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`border px-5 py-2.5 text-sm font-semibold transition ${
+                  selectedMode === mode
+                    ? 'border-[rgba(151,232,255,0.6)] bg-[rgba(12,58,81,0.92)] text-[#eff9ff]'
+                    : 'border-[rgba(132,179,219,0.3)] bg-[rgba(6,18,34,0.8)] text-[#9eb8cf] hover:border-[rgba(151,232,255,0.52)] hover:text-[#dff4ff]'
+                }`}
+                onClick={() => setSelectedMode(mode)}
+              >
+                {t(`pricing.mode.${mode}`)}
+              </button>
+            ))}
+          </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Object.entries(PRICING_PLANS).map(([key, plan]) => (
-            <Card
+      <section className="stagger-grid grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        {planEntries.map(([key]) => {
+          const isSelected = selectedPlan === key
+          const highlights = getPlanHighlights(key)
+
+          return (
+            <div
               key={key}
-              className={`h-full transition-all ${
-                selectedPlan === key ? 'ring-2 ring-indigo-600' : ''
+              className={`flex h-full flex-col border px-6 py-6 transition ${
+                isSelected
+                  ? 'border-[rgba(151,232,255,0.65)] bg-[rgba(9,34,52,0.86)]'
+                  : 'border-[rgba(132,179,219,0.25)] bg-[rgba(6,18,34,0.66)] hover:border-[rgba(151,232,255,0.42)] hover:bg-[rgba(8,28,46,0.82)]'
               }`}
             >
-              <div className="text-center">
-                <span className="text-5xl mb-4 block">{plan.icon}</span>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{plan.name}</h3>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-indigo-600">
-                    ¥{getPrice(key, selectedMode)}
-                  </span>
-                  <span className="text-gray-500">
-                    {selectedMode === 'per_use' ? '/次' : selectedMode === 'monthly' ? '/月' : '/年'}
-                  </span>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7ea8cd]">{getPlanTag(key)}</p>
+                  <h2 className="mt-2 text-2xl font-bold text-[#f2fbff]">{getPlanName(key)}</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">{plan.description}</p>
+                <span className="inline-flex h-10 w-10 items-center justify-center border border-[rgba(151,232,255,0.46)] bg-[rgba(10,37,58,0.9)] text-base text-[#b2edff]">
+                  {planIcons[key] || <DollarOutlined />}
+                </span>
+              </div>
+
+              <div className="mt-5 flex items-baseline gap-1 border-y border-[rgba(132,179,219,0.22)] py-4">
+                <span className="text-sm font-medium text-[#90acc6]">{t('common.currency')}</span>
+                <span className="text-4xl font-bold text-[#f2fbff]">{getPrice(key, selectedMode)}</span>
+                <span className="text-sm font-medium text-[#90acc6]">{t(`pricing.modeSuffix.${selectedMode}`)}</span>
+              </div>
+
+              <p className="mt-4 min-h-[48px] text-sm leading-6 text-[#96b5cf]">{getPlanDescription(key)}</p>
+
+              <div className="mt-4 space-y-2 text-sm text-[#96b5cf]">
+                {highlights.map((line) => (
+                  <p key={line} className="flex items-center gap-2">
+                    <span className="inline-flex h-5 w-5 items-center justify-center border border-[rgba(151,232,255,0.48)] bg-[rgba(10,37,58,0.86)] text-[10px] text-[#b2edff]">
+                      <CheckOutlined />
+                    </span>
+                    {line}
+                  </p>
+                ))}
+              </div>
+
+              <div className="mt-6">
                 <Button
                   onClick={() => handleSelectPlan(key)}
-                  className="w-full"
-                  variant={selectedPlan === key ? 'primary' : 'secondary'}
+                  className="w-full py-2.5"
+                  variant={isSelected ? 'primary' : 'secondary'}
                 >
-                  {selectedMode === 'per_use' ? '购买' : '订阅'}
+                  {selectedMode === 'per_use' ? t('pricing.buyNow') : t('pricing.subscribeNow')}
                 </Button>
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+          )
+        })}
+      </section>
 
-        {showPaymentModal && (
-          <Card className="max-w-md mx-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">选择支付方式</h2>
-            <div className="space-y-4">
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[rgba(2,7,14,0.72)] backdrop-blur-sm"
+            onClick={() => setShowPaymentModal(false)}
+            aria-label={t('pricing.modal.close')}
+          />
+
+          <div className="page-enter relative z-10 w-full max-w-lg border border-[rgba(132,179,219,0.35)] bg-[rgba(4,14,28,0.96)] p-6">
+            <h3 className="text-2xl font-bold text-[#f2fbff]">{t('pricing.modal.title')}</h3>
+            <p className="mt-1 text-sm text-[#96b5cf]">
+              {t('pricing.modal.currentPlan', {
+                plan: selectedPlan ? getPlanName(selectedPlan) : '-',
+                mode: t(`pricing.mode.${selectedMode}`),
+              })}
+            </p>
+
+            <div className="mt-5 space-y-3">
               {PAYMENT_METHODS.map((method) => (
                 <button
                   key={method.value}
-                  className={`w-full flex items-center justify-between p-4 border rounded-lg transition-colors ${
-                    selectedMethod === method.value
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  type="button"
                   onClick={() => setSelectedMethod(method.value)}
+                  className={`flex w-full items-center justify-between border px-4 py-3 text-left transition ${
+                    selectedMethod === method.value
+                      ? 'border-[rgba(151,232,255,0.58)] bg-[rgba(9,34,52,0.86)]'
+                      : 'border-[rgba(132,179,219,0.28)] bg-[rgba(6,18,34,0.8)] hover:border-[rgba(151,232,255,0.42)]'
+                  }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{method.icon}</span>
-                    <span className="font-medium">{method.label}</span>
-                  </div>
+                  <span className="flex items-center gap-3">
+                    <span className="inline-flex h-8 w-8 items-center justify-center border border-[rgba(151,232,255,0.42)] bg-[rgba(10,37,58,0.9)] text-sm text-[#b2edff]">
+                      {paymentIcons[method.value] || <WalletOutlined />}
+                    </span>
+                    <span className="font-medium text-[#e8f4ff]">{t(`pricing.payment.${method.value}`)}</span>
+                  </span>
                   {selectedMethod === method.value && (
-                    <span className="text-indigo-600">✓</span>
+                    <span className="border border-[rgba(151,232,255,0.58)] bg-[rgba(10,37,58,0.86)] px-2 py-0.5 text-xs font-bold text-[#d8f4ff]">
+                      {t('pricing.modal.selected')}
+                    </span>
                   )}
                 </button>
               ))}
             </div>
-            <div className="mt-6 flex space-x-4">
-              <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
-                取消
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setShowPaymentModal(false)} className="px-5 py-2.5">
+                {t('common.cancel')}
               </Button>
-              <Button onClick={handlePayment} loading={loading}>
-                确认支付
+              <Button onClick={handlePayment} loading={loading} className="px-6 py-2.5">
+                {t('pricing.payment.confirm')}
               </Button>
             </div>
-          </Card>
-        )}
-      </div>
-    </Layout>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

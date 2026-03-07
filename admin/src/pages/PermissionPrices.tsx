@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { adminApi } from '../api'
+import { useI18n } from '../i18n'
 
 const PermissionPrices: React.FC = () => {
   const [prices, setPrices] = useState<any>({
@@ -11,24 +12,25 @@ const PermissionPrices: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
+    const loadPrices = async () => {
+      setLoading(true)
+      try {
+        const data = await adminApi.getPermissionPrices()
+        if (data) {
+          setPrices(data)
+        }
+      } catch (error) {
+        console.error('Failed to load permission prices:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadPrices()
   }, [])
-
-  const loadPrices = async () => {
-    setLoading(true)
-    try {
-      const data = await adminApi.getPermissionPrices()
-      if (data) {
-        setPrices(data)
-      }
-    } catch (error) {
-      console.error('Failed to load permission prices:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -49,46 +51,42 @@ const PermissionPrices: React.FC = () => {
       ...prices,
       [type]: {
         ...prices[type],
-        [mode]: parseFloat(value) || 0,
+        [mode]: Number.parseFloat(value) || 0,
       },
     })
   }
 
   const permissionTypes = [
-    { key: 'script', name: '脚本生成' },
-    { key: 'image', name: '图片生成' },
-    { key: 'video', name: '视频生成' },
-    { key: 'ad', name: '广告设计' },
+    { key: 'script', name: t('permission.type.script') },
+    { key: 'image', name: t('permission.type.image') },
+    { key: 'video', name: t('permission.type.video') },
+    { key: 'ad', name: t('permission.type.ad') },
   ]
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">加载中...</p>
+      <div className="py-12 text-center">
+        <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+        <p className="mt-4 text-gray-600">{t('common.loading')}</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">权限价格设置</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t('permission.title')}</h1>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        {success && (
-          <div className="mb-4 p-3 bg-green-50 text-green-600 rounded-md">
-            保存成功
-          </div>
-        )}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        {success && <div className="mb-4 rounded-md bg-green-50 p-3 text-green-600">{t('permission.saveSuccess')}</div>}
 
         <div className="overflow-x-auto">
           <table>
             <thead>
               <tr>
-                <th>权限类型</th>
-                <th>按次付费</th>
-                <th>月度订阅</th>
-                <th>年度订阅</th>
+                <th>{t('permission.type')}</th>
+                <th>{t('permission.mode.perUse')}</th>
+                <th>{t('permission.mode.monthly')}</th>
+                <th>{t('permission.mode.yearly')}</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +100,7 @@ const PermissionPrices: React.FC = () => {
                       step="0.01"
                       value={prices[type.key].per_use}
                       onChange={(e) => handlePriceChange(type.key, 'per_use', e.target.value)}
-                      className="w-24 px-2 py-1 border rounded-md text-sm"
+                      className="w-24 rounded-md border px-2 py-1 text-sm"
                     />
                   </td>
                   <td>
@@ -112,7 +110,7 @@ const PermissionPrices: React.FC = () => {
                       step="0.01"
                       value={prices[type.key].monthly}
                       onChange={(e) => handlePriceChange(type.key, 'monthly', e.target.value)}
-                      className="w-24 px-2 py-1 border rounded-md text-sm"
+                      className="w-24 rounded-md border px-2 py-1 text-sm"
                     />
                   </td>
                   <td>
@@ -122,7 +120,7 @@ const PermissionPrices: React.FC = () => {
                       step="0.01"
                       value={prices[type.key].yearly}
                       onChange={(e) => handlePriceChange(type.key, 'yearly', e.target.value)}
-                      className="w-24 px-2 py-1 border rounded-md text-sm"
+                      className="w-24 rounded-md border px-2 py-1 text-sm"
                     />
                   </td>
                 </tr>
@@ -135,9 +133,10 @@ const PermissionPrices: React.FC = () => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"
+            type="button"
           >
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </div>
@@ -146,3 +145,4 @@ const PermissionPrices: React.FC = () => {
 }
 
 export default PermissionPrices
+

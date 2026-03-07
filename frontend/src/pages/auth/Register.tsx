@@ -1,107 +1,120 @@
-import { useState } from 'react'
-import { Form, Input, Button, Card, Typography, message } from 'antd'
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons'
+﻿import { useState } from 'react'
+import { Button, Form, Input, Typography, message } from 'antd'
+import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useNavigate } from 'react-router-dom'
+import { LanguageSwitcher } from '../../components'
 import { useAuth } from '../../hooks'
+import { useI18n } from '../../i18n'
 
 const { Title } = Typography
 
 const Register = () => {
   const navigate = useNavigate()
   const { register } = useAuth()
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { email: string; phone?: string; password: string }) => {
     setLoading(true)
     try {
       const result = await register({
         email: values.email,
         phone: values.phone,
         password: values.password,
-        nickname: values.email.split('@')[0], // Default nickname
+        nickname: values.email.split('@')[0],
       })
       if (result && result.success) {
-        message.success('注册成功，请登录')
+        message.success(t('auth.register.success'))
         navigate('/login')
       } else {
-        message.error('注册失败')
+        message.error(t('auth.register.failed'))
       }
     } catch (error) {
       console.error(error)
-      message.error('注册发生错误')
+      message.error(t('auth.register.error'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <Card className="w-full max-w-md">
-        <Title level={2} className="text-center mb-8">注册</Title>
-        <Form
-          name="register"
-          onFinish={onFinish}
-          autoComplete="off"
-          layout="vertical"
-        >
+    <div className="mx-auto flex min-h-[68vh] w-full max-w-md items-center">
+      <section className="section-shell w-full border border-[rgba(132,179,219,0.36)] px-6 py-7 sm:px-8 sm:py-8">
+        <div className="mb-6 text-center">
+          <div className="mb-3 flex justify-end">
+            <LanguageSwitcher />
+          </div>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#80a9cc]">{t('auth.register.portal')}</p>
+          <Title level={2} className="!mb-0 !mt-2 !text-[#f2fbff]">
+            {t('auth.register.title')}
+          </Title>
+        </div>
+
+        <Form name="register" onFinish={onFinish} autoComplete="off" layout="vertical">
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' }
+              { required: true, message: t('auth.register.emailRequired') },
+              { type: 'email', message: t('auth.register.emailInvalid') },
             ]}
           >
-            <Input prefix={<MailOutlined />} placeholder="邮箱" size="large" />
+            <Input prefix={<MailOutlined />} placeholder={t('auth.register.emailPlaceholder')} size="large" />
           </Form.Item>
 
-          <Form.Item
-            name="phone"
-            rules={[
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' }
-            ]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="手机号（选填）" size="large" />
+          <Form.Item name="phone" rules={[{ pattern: /^1[3-9]\d{9}$/, message: t('auth.register.phoneInvalid') }]}>
+            <Input prefix={<UserOutlined />} placeholder={t('auth.register.phonePlaceholder')} size="large" />
           </Form.Item>
 
           <Form.Item
             name="password"
             rules={[
-              { required: true, message: '请输入密码' },
-              { min: 6, message: '密码至少6位' }
+              { required: true, message: t('auth.register.passwordRequired') },
+              { min: 6, message: t('auth.register.passwordMin') },
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder={t('auth.register.passwordPlaceholder')}
+              size="large"
+            />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
             dependencies={['password']}
             rules={[
-              { required: true, message: '请确认密码' },
+              { required: true, message: t('auth.register.confirmRequired') },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) {
                     return Promise.resolve()
                   }
-                  return Promise.reject(new Error('两次密码不一致'))
+                  return Promise.reject(new Error(t('auth.register.passwordMismatch')))
                 },
               }),
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="确认密码" size="large" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder={t('auth.register.confirmPlaceholder')}
+              size="large"
+            />
           </Form.Item>
 
           <Form.Item>
             <Button type="primary" htmlType="submit" block size="large" loading={loading}>
-              注册
+              {t('auth.register.submit')}
             </Button>
           </Form.Item>
 
-          <div className="text-center">
-            已有账号？<Link to="/login" className="text-blue-500">立即登录</Link>
+          <div className="text-center text-sm text-[#8caac5]">
+            {t('auth.register.haveAccount')}
+            <Link to="/login" className="ml-1 font-medium text-[#9ce9ff] hover:text-[#d8f6ff]">
+              {t('auth.register.loginNow')}
+            </Link>
           </div>
         </Form>
-      </Card>
+      </section>
     </div>
   )
 }

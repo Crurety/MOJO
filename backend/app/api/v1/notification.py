@@ -1,5 +1,5 @@
 """消息通知API路由"""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.deps import get_current_user
@@ -30,6 +30,7 @@ class MessageResponse(BaseModel):
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/messages", response_model=List[MessageResponse])
 def get_messages(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     is_read: int = Query(None),
@@ -60,6 +61,7 @@ def get_messages(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/messages/unread-count")
 def get_unread_count(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -80,6 +82,7 @@ def get_unread_count(
 @limiter.limit(RATE_LIMITS["general"])
 @router.put("/messages/{message_id}/read", response_model=BaseResponse)
 def mark_message_as_read(
+    request: Request,
     message_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -106,6 +109,7 @@ def mark_message_as_read(
 @limiter.limit(RATE_LIMITS["general"])
 @router.put("/messages/read-all", response_model=BaseResponse)
 def mark_all_as_read(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -127,6 +131,7 @@ def mark_all_as_read(
 @limiter.limit(RATE_LIMITS["general"])
 @router.delete("/messages/{message_id}", response_model=BaseResponse)
 def delete_message(
+    request: Request,
     message_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

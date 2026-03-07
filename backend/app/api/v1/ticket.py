@@ -1,9 +1,9 @@
-﻿"""Ticket and feedback API routes."""
+"""Ticket and feedback API routes."""
 
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
@@ -82,6 +82,7 @@ class FeedbackResponse(BaseModel):
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/tickets", response_model=BaseResponse)
 def create_ticket(
+    request: Request,
     ticket_in: TicketCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -100,6 +101,7 @@ def create_ticket(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/tickets", response_model=List[TicketResponse])
 def get_tickets(
+    request: Request,
     status: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -114,6 +116,7 @@ def get_tickets(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/tickets/{ticket_no}", response_model=TicketResponse)
 def get_ticket(
+    request: Request,
     ticket_no: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -128,6 +131,7 @@ def get_ticket(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/tickets/{ticket_no}/replies", response_model=List[TicketReplyResponse])
 def get_ticket_replies(
+    request: Request,
     ticket_no: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -144,6 +148,7 @@ def get_ticket_replies(
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/tickets/{ticket_no}/replies", response_model=BaseResponse)
 def add_ticket_reply(
+    request: Request,
     ticket_no: str,
     reply_in: TicketReplyCreate,
     current_user: User = Depends(get_current_user),
@@ -167,6 +172,7 @@ def add_ticket_reply(
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/feedbacks", response_model=BaseResponse)
 def create_feedback(
+    request: Request,
     feedback_in: FeedbackCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -184,6 +190,7 @@ def create_feedback(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/feedbacks", response_model=List[FeedbackResponse])
 def get_feedbacks(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),

@@ -1,15 +1,18 @@
-import { Card, Typography } from 'antd'
+﻿import { Typography } from 'antd'
+import { useI18n } from '../../i18n'
 
-const { Title } = Typography
+const { Title, Paragraph } = Typography
 
 const Account = () => {
+  const { t } = useI18n()
+
   return (
-    <div className="p-8">
-      <Title level={2}>个人中心</Title>
-      <Card>
-        <p>个人中心功能开发中...</p>
-      </Card>
-    </div>
+    <section className="section-shell border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-8">
+      <Title level={2} className="!mb-2 !text-[#f2fbff]">
+        {t('page.account.title')}
+      </Title>
+      <Paragraph className="!mb-0 !text-[#96b5cf]">{t('page.account.desc')}</Paragraph>
+    </section>
   )
 }
 

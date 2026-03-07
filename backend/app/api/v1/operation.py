@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -23,6 +23,7 @@ router = APIRouter()
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/member/points")
 def get_my_points(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取我的积分"""
@@ -42,6 +43,7 @@ def get_my_points(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/member/level")
 def get_my_level(
+    request: Request,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取我的会员等级"""
@@ -52,7 +54,7 @@ def get_my_level(
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/member/levels")
-def get_all_levels(db: Session = Depends(get_db)):
+def get_all_levels(request: Request, db: Session = Depends(get_db)):
     """获取所有会员等级"""
     member_service = MemberService(db)
     levels = member_service.get_all_levels()
@@ -77,6 +79,7 @@ def get_all_levels(db: Session = Depends(get_db)):
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/member/points/logs")
 def get_points_logs(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -102,6 +105,7 @@ def get_points_logs(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/member/growth/tasks")
 def get_growth_tasks(
+    request: Request,
     task_type: str = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -130,6 +134,7 @@ def get_growth_tasks(
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/member/growth/tasks/{task_id}/claim", response_model=BaseResponse)
 def claim_task_reward(
+    request: Request,
     task_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -147,7 +152,7 @@ def claim_task_reward(
 # 营销活动接口
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/activities")
-def get_active_activities(db: Session = Depends(get_db)):
+def get_active_activities(request: Request, db: Session = Depends(get_db)):
     """获取进行中的活动"""
     activity_service = ActivityService(db)
     activities = activity_service.get_active_activities()
@@ -174,6 +179,7 @@ def get_active_activities(db: Session = Depends(get_db)):
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/activities/{activity_id}/participate", response_model=BaseResponse)
 def participate_activity(
+    request: Request,
     activity_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -193,6 +199,7 @@ def participate_activity(
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/activities/my")
 def get_my_participations(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),

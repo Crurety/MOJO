@@ -1,18 +1,19 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { contentApi } from '../api'
+import { translateStatic } from '../i18n'
 import { useTaskStore } from '../store'
 
 export const useContent = () => {
   const { tasks, setTasks, addTask, currentTask, setCurrentTask } = useTaskStore()
   const [loading, setLoading] = useState(false)
 
-  const createScript = async (data: any) => {
+  const createScript = async (data: unknown) => {
     setLoading(true)
     try {
       const response = await contentApi.createScript(data)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '创建失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.content.createFailed') }
     } finally {
       setLoading(false)
     }
@@ -24,20 +25,23 @@ export const useContent = () => {
       const response = await contentApi.getScripts(skip, limit)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.content.fetchFailed') }
     } finally {
       setLoading(false)
     }
   }
 
-  const createTask = async (data: any) => {
+  const createTask = async (data: unknown) => {
     setLoading(true)
     try {
       const response = await contentApi.createTask(data)
       addTask(response)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '创建任务失败' }
+      return {
+        success: false,
+        message: error.response?.data?.message || translateStatic('hook.content.createTaskFailed'),
+      }
     } finally {
       setLoading(false)
     }
@@ -50,7 +54,10 @@ export const useContent = () => {
       setTasks(response)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取任务失败' }
+      return {
+        success: false,
+        message: error.response?.data?.message || translateStatic('hook.content.fetchTaskFailed'),
+      }
     } finally {
       setLoading(false)
     }
@@ -63,7 +70,10 @@ export const useContent = () => {
       setCurrentTask(response)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取任务详情失败' }
+      return {
+        success: false,
+        message: error.response?.data?.message || translateStatic('hook.content.fetchTaskDetailFailed'),
+      }
     } finally {
       setLoading(false)
     }
@@ -75,7 +85,10 @@ export const useContent = () => {
       const response = await contentApi.getWorks(skip, limit, workType)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取作品失败' }
+      return {
+        success: false,
+        message: error.response?.data?.message || translateStatic('hook.content.fetchWorksFailed'),
+      }
     } finally {
       setLoading(false)
     }
@@ -87,7 +100,7 @@ export const useContent = () => {
       await contentApi.deleteWork(id)
       return { success: true }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '删除失败' }
+      return { success: false, message: error.response?.data?.message || translateStatic('hook.content.deleteFailed') }
     } finally {
       setLoading(false)
     }
@@ -99,7 +112,10 @@ export const useContent = () => {
       const response = await contentApi.getGallery(skip, limit, workType)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || '获取作品集失败' }
+      return {
+        success: false,
+        message: error.response?.data?.message || translateStatic('hook.content.fetchGalleryFailed'),
+      }
     } finally {
       setLoading(false)
     }
@@ -120,7 +136,7 @@ export const useContent = () => {
   }
 }
 
-export const useTaskPolling = (taskNo: string, onComplete?: (result: any) => void) => {
+export const useTaskPolling = (taskNo: string, onComplete?: (result: unknown) => void) => {
   const { updateTask } = useTaskStore()
   const [isPolling, setIsPolling] = useState(false)
 
@@ -130,7 +146,7 @@ export const useTaskPolling = (taskNo: string, onComplete?: (result: any) => voi
       try {
         const response = await contentApi.getTask(taskNo)
         updateTask(taskNo, response)
-        
+
         if (response.status === 2 || response.status === 3) {
           clearInterval(interval)
           setIsPolling(false)
@@ -152,3 +168,4 @@ export const useTaskPolling = (taskNo: string, onComplete?: (result: any) => voi
 
   return { isPolling, startPolling }
 }
+

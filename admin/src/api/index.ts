@@ -1,5 +1,6 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import * as Types from '../types/api'
+import { getCurrentLanguage } from '../i18n'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -17,10 +18,16 @@ class ApiClient {
 
     this.client.interceptors.request.use(
       (config) => {
+        const headers = AxiosHeaders.from(config.headers)
         const token = localStorage.getItem('admin_token')
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`
+          headers.set('Authorization', `Bearer ${token}`)
         }
+
+        const language = getCurrentLanguage() === 'zh' ? 'zh-CN' : 'en-US'
+        headers.set('Accept-Language', language)
+        config.headers = headers
+
         return config
       },
       (error) => {

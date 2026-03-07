@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.schemas import BaseResponse
-from app.services import OrderService, TaskService, UserService, WorkService
+from app.services import OrderService, PermissionService, TaskService, UserService, WorkService
 
 router = APIRouter(dependencies=[Depends(get_current_admin)])
 
@@ -138,18 +138,23 @@ def get_revenue_stats(
 
 
 @router.get("/permissions/prices")
-def get_permission_prices():
+def get_permission_prices(db: Session = Depends(get_db)):
+    permission_service = PermissionService(db)
+    prices = permission_service.get_permission_prices()
     return {
-        "script": {"per_use": 1, "monthly": 29, "yearly": 199},
-        "image": {"per_use": 3, "monthly": 99, "yearly": 699},
-        "video": {"per_use": 5, "monthly": 199, "yearly": 1399},
-        "ad": {"per_use": 8, "monthly": 299, "yearly": 1999},
+        permission_type: {
+            payment_mode: float(amount)
+            for payment_mode, amount in mode_values.items()
+        }
+        for permission_type, mode_values in prices.items()
     }
 
 
 @router.put("/permissions/prices", response_model=BaseResponse)
 def update_permission_prices(prices: dict[str, Any], db: Session = Depends(get_db)):
-    # TODO: persist custom pricing in config storage.
+    permission_service = PermissionService(db)
+    normalized = permission_service.normalize_permission_prices(prices)
+    permission_service.save_permission_prices(normalized)
     return BaseResponse(message="Prices updated")
 
 

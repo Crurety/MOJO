@@ -1,9 +1,9 @@
-﻿"""Help center API routes."""
+"""Help center API routes."""
 
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
@@ -87,14 +87,14 @@ class FAQCreate(BaseModel):
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/categories", response_model=List[CategoryResponse])
-def get_categories(db: Session = Depends(get_db)):
+def get_categories(request: Request, db: Session = Depends(get_db)):
     help_service = HelpService(db)
     return [CategoryResponse.model_validate(c) for c in help_service.get_categories()]
 
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/categories/{slug}", response_model=CategoryResponse)
-def get_category(slug: str, db: Session = Depends(get_db)):
+def get_category(request: Request, slug: str, db: Session = Depends(get_db)):
     help_service = HelpService(db)
     category = help_service.get_category_by_slug(slug)
     if not category:
@@ -105,6 +105,7 @@ def get_category(slug: str, db: Session = Depends(get_db)):
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/articles", response_model=List[ArticleResponse])
 def get_articles(
+    request: Request,
     category_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -117,7 +118,7 @@ def get_articles(
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/articles/{slug}", response_model=ArticleResponse)
-def get_article(slug: str, db: Session = Depends(get_db)):
+def get_article(request: Request, slug: str, db: Session = Depends(get_db)):
     help_service = HelpService(db)
     article = help_service.get_article_by_slug(slug)
     if not article:
@@ -129,7 +130,7 @@ def get_article(slug: str, db: Session = Depends(get_db)):
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/articles/{article_id}/helpful", response_model=BaseResponse)
-def mark_article_helpful(article_id: int, db: Session = Depends(get_db)):
+def mark_article_helpful(request: Request, article_id: int, db: Session = Depends(get_db)):
     help_service = HelpService(db)
     help_service.mark_article_helpful(article_id)
     return BaseResponse(message="Thanks for your feedback")
@@ -138,6 +139,7 @@ def mark_article_helpful(article_id: int, db: Session = Depends(get_db)):
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/faqs", response_model=List[FAQResponse])
 def get_faqs(
+    request: Request,
     category_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -150,7 +152,7 @@ def get_faqs(
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/faqs/{faq_id}", response_model=FAQResponse)
-def get_faq(faq_id: int, db: Session = Depends(get_db)):
+def get_faq(request: Request, faq_id: int, db: Session = Depends(get_db)):
     help_service = HelpService(db)
     faq = help_service.get_faq_by_id(faq_id)
     if not faq:
@@ -162,7 +164,7 @@ def get_faq(faq_id: int, db: Session = Depends(get_db)):
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.post("/faqs/{faq_id}/helpful", response_model=BaseResponse)
-def mark_faq_helpful(faq_id: int, db: Session = Depends(get_db)):
+def mark_faq_helpful(request: Request, faq_id: int, db: Session = Depends(get_db)):
     help_service = HelpService(db)
     help_service.mark_faq_helpful(faq_id)
     return BaseResponse(message="Thanks for your feedback")
@@ -171,6 +173,7 @@ def mark_faq_helpful(faq_id: int, db: Session = Depends(get_db)):
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/search")
 def search_help_content(
+    request: Request,
     keyword: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -188,7 +191,7 @@ def search_help_content(
 
 @limiter.limit(RATE_LIMITS["general"])
 @router.get("/popular")
-def get_popular_content(limit: int = Query(10, ge=1, le=50), db: Session = Depends(get_db)):
+def get_popular_content(request: Request, limit: int = Query(10, ge=1, le=50), db: Session = Depends(get_db)):
     help_service = HelpService(db)
     articles = help_service.get_popular_articles(limit)
     faqs = help_service.get_popular_faqs(limit)
