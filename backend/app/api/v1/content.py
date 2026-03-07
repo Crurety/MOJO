@@ -181,7 +181,7 @@ def create_image_task(
     db: Session = Depends(get_db),
 ):
     task_in = TaskCreate(task_type="image", parameters=payload)
-    return create_task(task_in=task_in, current_user=current_user, db=db)
+    return create_task(request=request, task_in=task_in, current_user=current_user, db=db)
 
 
 @limiter.limit(RATE_LIMITS["content"])
@@ -193,7 +193,7 @@ def create_video_task(
     db: Session = Depends(get_db),
 ):
     task_in = TaskCreate(task_type="video", parameters=payload)
-    return create_task(task_in=task_in, current_user=current_user, db=db)
+    return create_task(request=request, task_in=task_in, current_user=current_user, db=db)
 
 
 @limiter.limit(RATE_LIMITS["general"])
