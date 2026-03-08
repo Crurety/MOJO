@@ -160,6 +160,8 @@ jobs:
 
             cd "$APP_DIR"
             git fetch --depth 1 origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            git clean -fd
             git checkout --detach "$COMMIT_SHA"
 
             chmod +x scripts/deploy/remote-deploy.sh
