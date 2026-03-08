@@ -236,7 +236,7 @@ jobs:
           password: ${{ secrets.PROD_PASSWORD }}
           command_timeout: 45m
           script: |
-            set -e
+            set -euxo pipefail
             APP_DIR="${{ secrets.PROD_APP_DIR }}"
             if [ -z "$APP_DIR" ]; then
               APP_DIR="/opt/mojo"
@@ -252,7 +252,7 @@ jobs:
             cd "$APP_DIR"
             git fetch origin "$BRANCH"
             git checkout "$BRANCH"
-            git pull --ff-only origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
 
             if docker compose version >/dev/null 2>&1; then
               DC="docker compose"
@@ -266,7 +266,61 @@ jobs:
             $DC pull || true
             $DC down --remove-orphans || true
             $DC up -d --build --force-recreate --remove-orphans
+            $DC ps
 
             if ! $DC exec -T backend alembic upgrade head; then
               echo "Warning: alembic migration failed. Check DB migration state manually."
             fi
+
+      - name: Monitor service startup
+        if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && (env.PROD_SSH_KEY != '' || env.PROD_PASSWORD != '') }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          password: ${{ secrets.PROD_PASSWORD }}
+          command_timeout: 20m
+          script: |
+            set -euxo pipefail
+            APP_DIR="${{ secrets.PROD_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR="/opt/mojo"
+            fi
+            cd "$APP_DIR"
+
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              echo "Docker Compose not found on server"
+              exit 1
+            fi
+
+            echo "== docker compose ps =="
+            $DC ps
+
+            if $DC ps | grep -E "Exit|Exited|Dead"; then
+              echo "Some containers are not healthy/running."
+              exit 1
+            fi
+
+            check_url() {
+              name="$1"
+              url="$2"
+              retries=30
+              while [ "$retries" -gt 0 ]; do
+                if command -v curl >/dev/null 2>&1 && curl -fsS --max-time 5 "$url" >/dev/null; then
+                  echo "OK: $name -> $url"
+                  return 0
+                fi
+                retries=$((retries-1))
+                sleep 5
+              done
+              echo "Failed: $name -> $url"
+              return 1
+            }
+
+            check_url "Backend API" "http://localhost:8000/docs"
+            check_url "Nginx" "http://localhost/"
