@@ -159,7 +159,7 @@ jobs:
             fi
 
             cd "$APP_DIR"
-            git fetch --depth 1 origin "$COMMIT_SHA"
+            git fetch --depth 1 origin "$BRANCH"
             git checkout --detach "$COMMIT_SHA"
 
             chmod +x scripts/deploy/remote-deploy.sh
