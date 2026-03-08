@@ -2,7 +2,8 @@ import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig, AxiosResponse }
 import * as Types from '../types/api'
 import { getCurrentLanguage } from '../i18n'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+const BASE_URL = (rawBaseUrl && rawBaseUrl.length > 0 ? rawBaseUrl : '/api/v1').replace(/\/+$/, '')
 
 class ApiClient {
   private client: AxiosInstance
@@ -72,29 +73,42 @@ export const apiClient = new ApiClient()
 
 export const authApi = {
   login: (data: { account: string; password: string }): Promise<Types.LoginResponse> =>
-    apiClient.post('/auth/login', data),
+    apiClient.post('/auth/admin/login', data),
   
-  getCurrentUser: (): Promise<Types.User> =>
-    apiClient.get('/auth/me'),
+  getCurrentUser: (): Promise<Types.AdminAccount> =>
+    apiClient.get('/auth/admin/me'),
 }
 
 export const adminApi = {
   getDashboard: (): Promise<Types.DashboardData> =>
     apiClient.get('/admin/dashboard'),
   
-  getUsers: (skip = 0, limit = 20, status?: number): Promise<Types.User[]> => {
+  getUsers: (
+    skip = 0,
+    limit = 20,
+    status?: number,
+    keyword?: string
+  ): Promise<Types.AdminListResponse<Types.User>> => {
     let url = `/admin/users?skip=${skip}&limit=${limit}`
     if (status !== undefined) url += `&status=${status}`
+    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`
     return apiClient.get(url)
   },
   
   updateUserStatus: (userId: number, status: number): Promise<void> =>
     apiClient.put(`/admin/users/${userId}/status?status=${status}`),
   
-  getOrders: (skip = 0, limit = 20, status?: number, orderType?: string): Promise<Types.Order[]> => {
+  getOrders: (
+    skip = 0,
+    limit = 20,
+    status?: number,
+    orderType?: string,
+    keyword?: string
+  ): Promise<Types.AdminListResponse<Types.Order>> => {
     let url = `/admin/orders?skip=${skip}&limit=${limit}`
     if (status !== undefined) url += `&status=${status}`
     if (orderType) url += `&order_type=${orderType}`
+    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`
     return apiClient.get(url)
   },
   

@@ -7,13 +7,22 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_db
 from app.core.exceptions import BadRequestException
 from app.core.rate_limit import RATE_LIMITS, limiter
-from app.models import User
-from app.schemas import BaseResponse, LoginResponse, UserCreate, UserLogin, UserResponse
-from app.services import UserService
+from app.models import AdminUser, User
+from app.schemas import (
+    AdminLogin,
+    AdminLoginResponse,
+    AdminUserResponse,
+    BaseResponse,
+    LoginResponse,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+)
+from app.services import AdminUserService, UserService
 
 router = APIRouter()
 
@@ -81,6 +90,43 @@ def login(user_in: UserLogin, request: Request, db: Session = Depends(get_db)):
             "expires_in": 604800,
         },
     )
+
+
+@limiter.limit(RATE_LIMITS["auth"])
+@router.post("/admin/login", response_model=AdminLoginResponse)
+def admin_login(admin_in: AdminLogin, request: Request, db: Session = Depends(get_db)):
+    rate_key = _get_login_rate_key(request, f"admin:{admin_in.account}")
+    admin_service = AdminUserService(db)
+    admin_service.ensure_bootstrap_admin()
+
+    admin = admin_service.authenticate(admin_in.account, admin_in.password)
+    if not admin:
+        _record_failed_attempt(rate_key)
+        if _is_rate_limited(rate_key):
+            raise HTTPException(status_code=429, detail="Too many requests")
+        raise BadRequestException(detail="Invalid admin account or password")
+
+    if admin.status != 1:
+        raise BadRequestException(detail="Admin account is disabled")
+
+    _clear_attempts(rate_key)
+    admin_service.update_last_login(admin.id, request.client.host if request.client else None)
+    access_token = admin_service.generate_token(admin.id)
+
+    return AdminLoginResponse(
+        user=AdminUserResponse.model_validate(admin),
+        token={
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": 604800,
+        },
+    )
+
+
+@limiter.limit(RATE_LIMITS["general"])
+@router.get("/admin/me", response_model=AdminUserResponse)
+def get_current_admin_info(request: Request, current_admin: AdminUser = Depends(get_current_admin)):
+    return AdminUserResponse.model_validate(current_admin)
 
 
 @limiter.limit(RATE_LIMITS["general"])

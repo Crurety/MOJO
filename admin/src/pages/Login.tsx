@@ -24,7 +24,7 @@ const Login: React.FC = () => {
     try {
       const response = await authApi.login(formData)
       if (response.user && response.token) {
-        setAuth(response.user as any, response.token.access_token)
+        setAuth(response.user, response.token.access_token)
         navigate('/admin')
       } else {
         setError(t('login.failed'))
@@ -37,46 +37,43 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 text-center">
-          <div className="mb-3 flex justify-end">
-            <LanguageSwitcher />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('login.title')}</h1>
-          <p className="mt-2 text-gray-600">{t('login.subtitle')}</p>
+    <div className="admin-auth">
+      <div className="admin-auth-card">
+        <div className="mb-5 flex justify-end">
+          <LanguageSwitcher />
         </div>
 
-        {error && <div className="mb-4 rounded-md bg-red-50 p-3 text-red-600">{error}</div>}
+        <div className="admin-auth-head">
+          <h1 className="admin-auth-title">{t('login.title')}</h1>
+          <p className="admin-auth-subtitle">{t('login.subtitle')}</p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">{t('login.accountLabel')}</label>
+        {error && <div className="admin-alert is-error mb-4">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="admin-field">
+            <label className="admin-label">{t('login.accountLabel')}</label>
             <input
               type="text"
               value={formData.account}
               onChange={(e) => setFormData({ ...formData, account: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="admin-input w-full"
               placeholder={t('login.accountPlaceholder')}
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">{t('login.passwordLabel')}</label>
+          <div className="admin-field">
+            <label className="admin-label">{t('login.passwordLabel')}</label>
             <input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="admin-input w-full"
               placeholder={t('login.passwordPlaceholder')}
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-300"
-          >
+          <button type="submit" disabled={loading} className="admin-btn admin-btn-primary w-full">
             {loading ? t('login.submitting') : t('login.submit')}
           </button>
         </form>
@@ -86,4 +83,3 @@ const Login: React.FC = () => {
 }
 
 export default Login
-

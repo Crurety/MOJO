@@ -1,6 +1,6 @@
-// API响应类型定义
+// API鍝嶅簲绫诲瀷瀹氫箟
 
-// 用户相关类型
+// 鐢ㄦ埛鐩稿叧绫诲瀷
 export interface User {
   id: number
   email?: string
@@ -12,16 +12,26 @@ export interface User {
   created_at: string
 }
 
-// 认证相关类型
+// 璁よ瘉鐩稿叧绫诲瀷
+export interface AdminAccount {
+  id: number
+  username: string
+  email?: string
+  nickname?: string
+  role: string
+  status: number
+  created_at: string
+}
+
 export interface LoginResponse {
-  user: User
+  user: AdminAccount
   token: {
     access_token: string
     token_type: string
   }
 }
 
-// 任务相关类型
+// 浠诲姟鐩稿叧绫诲瀷
 export interface Task {
   id: number
   task_no: string
@@ -36,7 +46,7 @@ export interface Task {
   completed_at?: string
 }
 
-// 作品相关类型
+// 浣滃搧鐩稿叧绫诲瀷
 export interface Work {
   id: number
   work_type: string
@@ -49,21 +59,22 @@ export interface Work {
   updated_at: string
 }
 
-// 订单相关类型
+// 璁㈠崟鐩稿叧绫诲瀷
 export interface Order {
+  id?: number
   order_no: string
   user_id: number
-  user_nickname: string
+  user_nickname?: string
   order_type: string
   product_name?: string
   amount: number
-  payment_method: string
+  payment_method?: string
   status: number
   created_at: string
   completed_at?: string
 }
 
-// 仪表盘相关类型
+// 浠〃鐩樼浉鍏崇被鍨?
 export interface DashboardData {
   total_users: number
   total_orders: number
@@ -75,7 +86,7 @@ export interface DashboardData {
   }[]
 }
 
-// 收入统计相关类型
+// 鏀跺叆缁熻鐩稿叧绫诲瀷
 export interface RevenueStats {
   total_revenue: number
   daily_stats: {
@@ -94,17 +105,25 @@ export interface RevenueStats {
   }[]
 }
 
-// 通用响应类型
+// 閫氱敤鍝嶅簲绫诲瀷
 export interface ApiResponse<T> {
   code: number
   message: string
   data: T
 }
 
-// 分页响应类型
+// 鍒嗛〉鍝嶅簲绫诲瀷
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
   page: number
   page_size: number
 }
+
+export interface AdminListResponse<T> {
+  items: T[]
+  total: number
+  skip: number
+  limit: number
+}
+

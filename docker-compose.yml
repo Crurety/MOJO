@@ -14,6 +14,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       STABILITY_API_KEY: ${STABILITY_API_KEY:-}
       RUNWAY_API_KEY: ${RUNWAY_API_KEY:-}
+      ADMIN_INIT_USERNAME: ${ADMIN_INIT_USERNAME:-}
+      ADMIN_INIT_PASSWORD: ${ADMIN_INIT_PASSWORD:-}
+      ADMIN_INIT_EMAIL: ${ADMIN_INIT_EMAIL:-}
+      ADMIN_INIT_NICKNAME: ${ADMIN_INIT_NICKNAME:-Administrator}
     depends_on: &backend-depends
       mysql:
         condition: service_healthy

@@ -1,29 +1,40 @@
-import os
 from typing import Optional
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import UnauthorizedException
 from app.core.security import decode_access_token
-from app.models import User
+from app.models import AdminUser, User
 
 security = HTTPBearer(auto_error=False)
 optional_security = HTTPBearer(auto_error=False)
 
 
-def _parse_user_id_from_token(token: str) -> int:
+def _parse_subject_from_token(token: str) -> str:
     subject = decode_access_token(token)
     if not subject:
         raise UnauthorizedException(detail="Invalid token")
+    return subject
 
+
+def _parse_user_id_from_subject(subject: str) -> int:
     try:
         return int(subject)
     except (TypeError, ValueError):
         raise UnauthorizedException(detail="Invalid token subject")
+
+
+def _parse_admin_id_from_subject(subject: str) -> int:
+    if not subject.startswith("admin:"):
+        raise UnauthorizedException(detail="Admin token required")
+
+    try:
+        return int(subject.split(":", 1)[1])
+    except (TypeError, ValueError):
+        raise UnauthorizedException(detail="Invalid admin token subject")
 
 
 def get_current_user(
@@ -33,7 +44,8 @@ def get_current_user(
     if not credentials or credentials.scheme.lower() != "bearer":
         raise UnauthorizedException(detail="Not authenticated")
 
-    user_id = _parse_user_id_from_token(credentials.credentials)
+    subject = _parse_subject_from_token(credentials.credentials)
+    user_id = _parse_user_id_from_subject(subject)
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -48,18 +60,21 @@ def get_current_user(
 def get_current_admin(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
-) -> User:
-    user = get_current_user(credentials=credentials, db=db)
+) -> AdminUser:
+    if not credentials or credentials.scheme.lower() != "bearer":
+        raise UnauthorizedException(detail="Not authenticated")
 
-    # In tests, use explicit admin account identity instead of .env ADMIN_USER_IDS.
-    admin_ids = set() if os.getenv("TESTING") else set(settings.ADMIN_USER_IDS or [])
-    email = (user.email or "").lower()
-    is_admin_email = email.startswith("admin@")
+    subject = _parse_subject_from_token(credentials.credentials)
+    admin_id = _parse_admin_id_from_subject(subject)
 
-    if user.id not in admin_ids and not is_admin_email:
-        raise UnauthorizedException(detail="Admin permission required")
+    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    if not admin:
+        raise UnauthorizedException(detail="Admin not found")
 
-    return user
+    if admin.status != 1:
+        raise UnauthorizedException(detail="Admin is disabled")
+
+    return admin
 
 
 def get_optional_user(
@@ -70,7 +85,8 @@ def get_optional_user(
         return None
 
     try:
-        user_id = _parse_user_id_from_token(credentials.credentials)
+        subject = _parse_subject_from_token(credentials.credentials)
+        user_id = _parse_user_id_from_subject(subject)
     except UnauthorizedException:
         return None
 

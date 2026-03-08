@@ -1,12 +1,11 @@
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AI创作平台"
+    PROJECT_NAME: str = "MOJO"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
 
@@ -49,7 +48,10 @@ class Settings(BaseSettings):
     OSS_ENDPOINT: Optional[str] = None
 
     SERVER_PUBLIC_URL: Optional[str] = None
-    ADMIN_USER_IDS: list[int] = Field(default_factory=list)
+    ADMIN_INIT_USERNAME: Optional[str] = None
+    ADMIN_INIT_PASSWORD: Optional[str] = None
+    ADMIN_INIT_EMAIL: Optional[str] = None
+    ADMIN_INIT_NICKNAME: str = "Administrator"
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 

@@ -1,4 +1,5 @@
 from app.schemas.common import BaseResponse, ErrorResponse, PaginatedResponse
+from app.schemas.admin_auth import AdminLogin, AdminLoginResponse, AdminUserResponse
 from app.schemas.user import (
     UserCreate, UserLogin, UserUpdate, UserResponse,
     TokenResponse, LoginResponse
@@ -16,6 +17,9 @@ __all__ = [
     "BaseResponse",
     "ErrorResponse",
     "PaginatedResponse",
+    "AdminLogin",
+    "AdminUserResponse",
+    "AdminLoginResponse",
     "UserCreate",
     "UserLogin",
     "UserUpdate",

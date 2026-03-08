@@ -1,4 +1,5 @@
 from app.models.base import Base
+from app.models.admin_user import AdminUser
 from app.models.coupon import Coupon, UserCoupon
 from app.models.help import FAQ, HelpArticle, HelpCategory
 from app.models.invoice import Invoice, UserRealName
@@ -22,6 +23,7 @@ from app.models.work import Work
 
 __all__ = [
     "Base",
+    "AdminUser",
     "User",
     "UserPermission",
     "SystemConfig",
