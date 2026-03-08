@@ -70,7 +70,6 @@ const Tasks = () => {
       void loadTasks()
     }, 5000)
     return () => window.clearInterval(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskType, status])
 
   const columns: ColumnsType<TaskRecord> = useMemo(
@@ -168,4 +167,3 @@ const Tasks = () => {
 }
 
 export default Tasks
-
