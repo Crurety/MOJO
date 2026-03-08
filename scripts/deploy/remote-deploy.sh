@@ -164,13 +164,25 @@ main() {
   fi
 
   log "Starting services"
-  if ! "${DC[@]}" up -d --build --remove-orphans "${wait_args[@]}"; then
-    log "docker compose up failed; printing logs"
-    "${DC[@]}" ps || true
-    "${DC[@]}" logs --tail=200 backend || true
-    "${DC[@]}" logs --tail=120 nginx || true
-    exit 1
-  fi
+  local max_up_retries="${DEPLOY_UP_RETRIES:-3}"
+  local up_attempt=1
+  while true; do
+    if "${DC[@]}" up -d --build --remove-orphans "${wait_args[@]}"; then
+      break
+    fi
+
+    if [[ "$up_attempt" -ge "$max_up_retries" ]]; then
+      log "docker compose up failed after ${up_attempt} attempts; printing logs"
+      "${DC[@]}" ps || true
+      "${DC[@]}" logs --tail=200 backend || true
+      "${DC[@]}" logs --tail=120 nginx || true
+      exit 1
+    fi
+
+    log "docker compose up attempt ${up_attempt}/${max_up_retries} failed; retrying in 15s"
+    up_attempt=$((up_attempt + 1))
+    sleep 15
+  done
 
   log "Running alembic migrations"
   if ! "${DC[@]}" exec -T backend alembic upgrade head; then

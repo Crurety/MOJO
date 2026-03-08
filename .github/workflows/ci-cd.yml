@@ -161,7 +161,16 @@ jobs:
             cd "$APP_DIR"
             git fetch --depth 1 origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
-            git clean -fd
+            git clean -fd \
+              -e .deploy-cache/ \
+              -e backend/logs/ \
+              -e backend/uploads/ \
+              -e frontend/node_modules/ \
+              -e admin/node_modules/ \
+              -e current/ \
+              -e current.bak/ \
+              -e 'current.bak.*/' \
+              -e releases/
             git checkout --detach "$COMMIT_SHA"
 
             chmod +x scripts/deploy/remote-deploy.sh
