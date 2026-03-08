@@ -184,6 +184,12 @@ main() {
     sleep 15
   done
 
+  # Nginx resolves upstream backend IP at startup; refresh after backend recreation.
+  if "${DC[@]}" ps --services | grep -qx "nginx"; then
+    log "Restarting nginx to refresh upstream DNS"
+    "${DC[@]}" restart nginx || true
+  fi
+
   log "Running alembic migrations"
   if ! "${DC[@]}" exec -T backend alembic upgrade head; then
     log "alembic migration failed; continuing with running services"
