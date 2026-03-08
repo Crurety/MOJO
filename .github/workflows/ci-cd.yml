@@ -1,10 +1,11 @@
-﻿name: Mojo CI/CD
+name: Mojo CI/CD
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,8 +17,6 @@ concurrency:
 env:
   PYTHON_VERSION: "3.10"
   NODE_VERSION: "18"
-  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
   PROD_HOST: ${{ secrets.PROD_HOST }}
   PROD_USERNAME: ${{ secrets.PROD_USERNAME }}
   PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
@@ -126,103 +125,9 @@ jobs:
       - name: Run build
         run: npm run build
 
-  docker-build:
-    name: Docker Build
-    needs: [backend-ci, web-ci]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-
-      - name: Build and push backend (sha)
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ env.DOCKER_USERNAME }}/mojo-backend:${{ github.sha }}
-
-      - name: Build and push backend (latest)
-        if: ${{ github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ env.DOCKER_USERNAME }}/mojo-backend:latest
-
-      - name: Build backend only (no push)
-        if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: false
-
-      - name: Build and push frontend (sha)
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ env.DOCKER_USERNAME }}/mojo-frontend:${{ github.sha }}
-
-      - name: Build and push frontend (latest)
-        if: ${{ github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ env.DOCKER_USERNAME }}/mojo-frontend:latest
-
-      - name: Build frontend only (no push)
-        if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: false
-
-      - name: Build and push admin (sha)
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./admin
-          file: ./admin/Dockerfile
-          push: true
-          tags: ${{ env.DOCKER_USERNAME }}/mojo-admin:${{ github.sha }}
-
-      - name: Build and push admin (latest)
-        if: ${{ github.ref == 'refs/heads/main' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./admin
-          file: ./admin/Dockerfile
-          push: true
-          tags: ${{ env.DOCKER_USERNAME }}/mojo-admin:latest
-
-      - name: Build admin only (no push)
-        if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./admin
-          file: ./admin/Dockerfile
-          push: false
-
   deploy:
     name: Deploy
-    needs: docker-build
+    needs: [backend-ci, web-ci]
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
@@ -234,93 +139,33 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           password: ${{ secrets.PROD_PASSWORD }}
-          command_timeout: 45m
+          command_timeout: 60m
+          script_stop: true
           script: |
-            set -euxo pipefail
+            set -euo pipefail
+
             APP_DIR="${{ secrets.PROD_APP_DIR }}"
             if [ -z "$APP_DIR" ]; then
               APP_DIR="/opt/mojo"
             fi
+
             REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
             BRANCH="${{ github.ref_name }}"
+            COMMIT_SHA="${{ github.sha }}"
 
             if [ ! -d "$APP_DIR/.git" ]; then
-              rm -rf "$APP_DIR"
+              mkdir -p "$APP_DIR"
               git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$APP_DIR"
             fi
 
             cd "$APP_DIR"
-            git fetch origin "$BRANCH"
-            git checkout "$BRANCH"
-            git reset --hard "origin/$BRANCH"
+            git fetch --depth 1 origin "$COMMIT_SHA"
+            git checkout --detach "$COMMIT_SHA"
 
-            if docker compose version >/dev/null 2>&1; then
-              DC="docker compose"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              DC="docker-compose"
-            else
-              echo "Docker Compose not found on server"
-              exit 1
-            fi
+            chmod +x scripts/deploy/remote-deploy.sh
+            APP_DIR="$APP_DIR" COMMIT_SHA="$COMMIT_SHA" COMPOSE_PROJECT_NAME="mojo" bash scripts/deploy/remote-deploy.sh
 
-            $DC pull || true
-            $DC down --remove-orphans || true
-            $DC up -d --build --force-recreate --remove-orphans
-            $DC ps
-
-            if ! $DC exec -T backend alembic upgrade head; then
-              echo "Warning: alembic migration failed. Check DB migration state manually."
-            fi
-
-      - name: Monitor service startup
-        if: ${{ env.PROD_HOST != '' && env.PROD_USERNAME != '' && (env.PROD_SSH_KEY != '' || env.PROD_PASSWORD != '') }}
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          password: ${{ secrets.PROD_PASSWORD }}
-          command_timeout: 20m
-          script: |
-            set -euxo pipefail
-            APP_DIR="${{ secrets.PROD_APP_DIR }}"
-            if [ -z "$APP_DIR" ]; then
-              APP_DIR="/opt/mojo"
-            fi
-            cd "$APP_DIR"
-
-            if docker compose version >/dev/null 2>&1; then
-              DC="docker compose"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              DC="docker-compose"
-            else
-              echo "Docker Compose not found on server"
-              exit 1
-            fi
-
-            echo "== docker compose ps =="
-            $DC ps
-
-            if $DC ps | grep -E "Exit|Exited|Dead"; then
-              echo "Some containers are not healthy/running."
-              exit 1
-            fi
-
-            check_url() {
-              name="$1"
-              url="$2"
-              retries=30
-              while [ "$retries" -gt 0 ]; do
-                if command -v curl >/dev/null 2>&1 && curl -fsS --max-time 5 "$url" >/dev/null; then
-                  echo "OK: $name -> $url"
-                  return 0
-                fi
-                retries=$((retries-1))
-                sleep 5
-              done
-              echo "Failed: $name -> $url"
-              return 1
-            }
-
-            check_url "Backend API" "http://localhost:8000/docs"
-            check_url "Nginx" "http://localhost/"
+      - name: Skip deploy (missing secrets)
+        if: ${{ env.PROD_HOST == '' || env.PROD_USERNAME == '' || (env.PROD_SSH_KEY == '' && env.PROD_PASSWORD == '') }}
+        run: |
+          echo "Deployment skipped: production SSH secrets are not fully configured."

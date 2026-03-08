@@ -1,26 +1,26 @@
-﻿version: "3.8"
-
 services:
-  # 鍚庣API鏈嶅姟
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: ai-platform-backend
+    image: mojo-backend:${MOJO_IMAGE_TAG:-local}
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
-      - REDIS_URL=redis://redis:6379/0
-      - MONGODB_URL=mongodb://mongodb:27017
-      - SECRET_KEY=${SECRET_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - STABILITY_API_KEY=${STABILITY_API_KEY}
-      - RUNWAY_API_KEY=${RUNWAY_API_KEY}
-    depends_on:
-      - mysql
-      - redis
-      - mongodb
+    environment: &backend-env
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
+      REDIS_URL: redis://redis:6379/0
+      MONGODB_URL: mongodb://mongodb:27017
+      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_random_long_secret}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      STABILITY_API_KEY: ${STABILITY_API_KEY:-}
+      RUNWAY_API_KEY: ${RUNWAY_API_KEY:-}
+    depends_on: &backend-depends
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
     volumes:
       - ./backend/logs:/app/logs
       - ./backend/uploads:/app/uploads
@@ -28,67 +28,68 @@ services:
       - ai-platform-network
     restart: unless-stopped
 
-  # MySQL鏁版嵁搴?
   mysql:
     image: mysql:8.0
-    container_name: ai-platform-mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-change_root_password}
-      - MYSQL_USER=${MYSQL_USER:-ai_platform}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-change_this_password}
-      - MYSQL_DATABASE=ai_platform
-      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
-      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_root_password}
+      MYSQL_USER: ${MYSQL_USER:-ai_platform}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_this_password}
+      MYSQL_DATABASE: ai_platform
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
       - "127.0.0.1:3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - ai-platform-network
     restart: unless-stopped
 
-  # Redis缂撳瓨
   redis:
     image: redis:7-alpine
-    container_name: ai-platform-redis
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - ai-platform-network
     restart: unless-stopped
 
-  # MongoDB鏃ュ織
   mongodb:
     image: mongo:5
-    container_name: ai-platform-mongodb
     ports:
       - "127.0.0.1:27017:27017"
     volumes:
       - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep 1 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - ai-platform-network
     restart: unless-stopped
 
-  # Celery Worker - 榛樿闃熷垪
   celery-worker-default:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-platform-celery-default
+    image: mojo-backend:${MOJO_IMAGE_TAG:-local}
     command: celery -A app.tasks.celery_app worker -Q default -l info -n worker1@%h
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
-      - REDIS_URL=redis://redis:6379/0
-      - MONGODB_URL=mongodb://mongodb:27017
-      - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      - mysql
-      - redis
-      - mongodb
+    environment: *backend-env
+    depends_on: *backend-depends
     volumes:
       - ./backend/logs:/app/logs
     networks:
@@ -97,22 +98,11 @@ services:
     healthcheck:
       disable: true
 
-  # Celery Worker - 娓呯悊闃熷垪
   celery-worker-cleanup:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-platform-celery-cleanup
+    image: mojo-backend:${MOJO_IMAGE_TAG:-local}
     command: celery -A app.tasks.celery_app worker -Q cleanup -l info -n worker2@%h
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
-      - REDIS_URL=redis://redis:6379/0
-      - MONGODB_URL=mongodb://mongodb:27017
-      - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      - mysql
-      - redis
-      - mongodb
+    environment: *backend-env
+    depends_on: *backend-depends
     volumes:
       - ./backend/logs:/app/logs
     networks:
@@ -121,22 +111,11 @@ services:
     healthcheck:
       disable: true
 
-  # Celery Worker - 閫氱煡闃熷垪
   celery-worker-notification:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-platform-celery-notification
+    image: mojo-backend:${MOJO_IMAGE_TAG:-local}
     command: celery -A app.tasks.celery_app worker -Q notification -l info -n worker3@%h
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
-      - REDIS_URL=redis://redis:6379/0
-      - MONGODB_URL=mongodb://mongodb:27017
-      - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      - mysql
-      - redis
-      - mongodb
+    environment: *backend-env
+    depends_on: *backend-depends
     volumes:
       - ./backend/logs:/app/logs
     networks:
@@ -145,22 +124,11 @@ services:
     healthcheck:
       disable: true
 
-  # Celery Worker - 杩愯惀闃熷垪
   celery-worker-operation:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-platform-celery-operation
+    image: mojo-backend:${MOJO_IMAGE_TAG:-local}
     command: celery -A app.tasks.celery_app worker -Q operation -l info -n worker4@%h
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
-      - REDIS_URL=redis://redis:6379/0
-      - MONGODB_URL=mongodb://mongodb:27017
-      - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      - mysql
-      - redis
-      - mongodb
+    environment: *backend-env
+    depends_on: *backend-depends
     volumes:
       - ./backend/logs:/app/logs
     networks:
@@ -169,22 +137,11 @@ services:
     healthcheck:
       disable: true
 
-  # Celery Beat瀹氭椂浠诲姟
   celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-platform-celery-beat
+    image: mojo-backend:${MOJO_IMAGE_TAG:-local}
     command: celery -A app.tasks.celery_app beat -l info
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_platform}:${MYSQL_PASSWORD:-change_this_password}@mysql:3306/ai_platform
-      - REDIS_URL=redis://redis:6379/0
-      - MONGODB_URL=mongodb://mongodb:27017
-      - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      - mysql
-      - redis
-      - mongodb
+    environment: *backend-env
+    depends_on: *backend-depends
     volumes:
       - ./backend/logs:/app/logs
     networks:
@@ -193,10 +150,8 @@ services:
     healthcheck:
       disable: true
 
-  # Nginx鍙嶅悜浠ｇ悊
   nginx:
     image: nginx:alpine
-    container_name: ai-platform-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -204,8 +159,10 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
       - ./frontend/dist:/usr/share/nginx/html
+      - ./admin/dist:/usr/share/nginx/admin
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - ai-platform-network
     restart: unless-stopped
