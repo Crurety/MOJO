@@ -289,3 +289,7 @@ class RedisClient:
 
 
 redis_client = RedisClient()
+# Backward-compatible alias used by existing tests/modules.
+redis = redis_client
+
+__all__ = ["RedisClient", "redis_client", "redis"]
