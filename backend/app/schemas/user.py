@@ -26,7 +26,7 @@ class UserCreate(UserBase):
     @classmethod
     def validate_password(cls, v):
         # 密码强度验证：至少包含字母和数字
-        if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$', v):
+        if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[^\s]{6,}$', v):
             raise ValueError('密码至少包含6个字符，且必须包含字母和数字')
         return v
 

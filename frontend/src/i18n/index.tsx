@@ -140,7 +140,7 @@ const messages: Record<FrontendLanguage, MessageDictionary> = {
     'auth.register.emailInvalid': '请输入有效的邮箱地址',
     'auth.register.phoneInvalid': '请输入有效的手机号',
     'auth.register.passwordRequired': '请输入密码',
-    'auth.register.passwordMin': '密码至少 6 位',
+    'auth.register.passwordMin': '密码至少6位，且必须包含字母和数字',
     'auth.register.confirmRequired': '请确认密码',
     'auth.register.passwordMismatch': '两次密码不一致',
     'auth.register.emailPlaceholder': '邮箱',
@@ -314,7 +314,7 @@ const messages: Record<FrontendLanguage, MessageDictionary> = {
     'auth.register.emailInvalid': 'Please enter a valid email address',
     'auth.register.phoneInvalid': 'Please enter a valid phone number',
     'auth.register.passwordRequired': 'Please enter password',
-    'auth.register.passwordMin': 'Password must be at least 6 characters',
+    'auth.register.passwordMin': 'Password must be at least 6 characters and include letters and numbers',
     'auth.register.confirmRequired': 'Please confirm your password',
     'auth.register.passwordMismatch': 'Passwords do not match',
     'auth.register.emailPlaceholder': 'Email',
@@ -442,4 +442,3 @@ export const getCurrentLanguage = (): FrontendLanguage => detectLanguage()
 
 export const translateStatic = (key: string, params?: MessageParams): string =>
   translateByLanguage(detectLanguage(), key, params)
-

@@ -11,11 +11,12 @@ const AdminLayout: React.FC = () => {
   const location = useLocation()
 
   const navItems = [
-    { path: '/admin', label: t('layout.nav.dashboard'), icon: '📊' },
-    { path: '/admin/users', label: t('layout.nav.users'), icon: '👤' },
-    { path: '/admin/orders', label: t('layout.nav.orders'), icon: '🧾' },
-    { path: '/admin/revenue', label: t('layout.nav.revenue'), icon: '💰' },
-    { path: '/admin/permissions', label: t('layout.nav.permissions'), icon: '⚙️' },
+    { path: '/admin', label: t('layout.nav.dashboard'), icon: 'DB' },
+    { path: '/admin/users', label: t('layout.nav.users'), icon: 'USR' },
+    { path: '/admin/orders', label: t('layout.nav.orders'), icon: 'ORD' },
+    { path: '/admin/revenue', label: t('layout.nav.revenue'), icon: 'REV' },
+    { path: '/admin/permissions', label: t('layout.nav.permissions'), icon: 'PRI' },
+    { path: '/admin/ai-config', label: t('layout.nav.aiConfig'), icon: 'AI' },
   ]
 
   return (
@@ -30,7 +31,7 @@ const AdminLayout: React.FC = () => {
                 aria-label={t('layout.toggleSidebar')}
                 type="button"
               >
-                <span className="text-xl">{sidebarCollapsed ? '☰' : '×'}</span>
+                <span className="text-xl">{sidebarCollapsed ? '+' : 'x'}</span>
               </button>
               <Link to="/admin" className="ml-2 flex items-center lg:ml-0">
                 <span className="text-2xl font-bold text-indigo-600">{t('layout.title')}</span>
@@ -66,7 +67,7 @@ const AdminLayout: React.FC = () => {
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <span className="mr-3 text-xl">{item.icon}</span>
+                <span className="mr-3 text-xs font-semibold">{item.icon}</span>
                 {item.label}
               </Link>
             ))}

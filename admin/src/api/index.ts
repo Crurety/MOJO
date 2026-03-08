@@ -112,4 +112,10 @@ export const adminApi = {
   
   updatePermissionPrices: (prices: any): Promise<void> =>
     apiClient.put('/admin/permissions/prices', prices),
+
+  getAIProviderConfigs: (): Promise<any> =>
+    apiClient.get('/admin/ai/providers'),
+
+  updateAIProviderConfig: (provider: 'openai' | 'stability' | 'runway', payload: any): Promise<void> =>
+    apiClient.put(`/admin/ai/providers/${provider}`, payload),
 }

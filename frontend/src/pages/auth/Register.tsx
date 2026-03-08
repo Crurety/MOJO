@@ -17,9 +17,10 @@ const Register = () => {
   const onFinish = async (values: { email: string; phone?: string; password: string }) => {
     setLoading(true)
     try {
+      const normalizedPhone = values.phone?.trim()
       const result = await register({
-        email: values.email,
-        phone: values.phone,
+        email: values.email.trim(),
+        phone: normalizedPhone || undefined,
         password: values.password,
         nickname: values.email.split('@')[0],
       })
@@ -29,9 +30,16 @@ const Register = () => {
       } else {
         message.error(t('auth.register.failed'))
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      message.error(t('auth.register.error'))
+      const detail = error?.response?.data?.detail
+      if (Array.isArray(detail) && detail[0]?.msg) {
+        message.error(detail[0].msg)
+      } else if (typeof detail === 'string') {
+        message.error(detail)
+      } else {
+        message.error(t('auth.register.error'))
+      }
     } finally {
       setLoading(false)
     }
@@ -69,7 +77,7 @@ const Register = () => {
             name="password"
             rules={[
               { required: true, message: t('auth.register.passwordRequired') },
-              { min: 6, message: t('auth.register.passwordMin') },
+              { pattern: /^(?=.*[A-Za-z])(?=.*\d)[^\s]{6,}$/, message: t('auth.register.passwordMin') },
             ]}
           >
             <Input.Password

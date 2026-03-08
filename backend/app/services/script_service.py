@@ -14,15 +14,21 @@ class ScriptService:
     def get_by_id(self, script_id: int) -> Optional[Script]:
         return self.db.query(Script).filter(Script.id == script_id).first()
 
-    def create(self, user_id: int, script_in: ScriptCreate) -> Script:
-        content = script_in.content or f"Generated from keywords: {script_in.keywords}"
+    def create(
+        self,
+        user_id: int,
+        script_in: ScriptCreate,
+        generated_content: str | None = None,
+    ) -> Script:
+        content = generated_content or script_in.content or f"Generated from keywords: {script_in.keywords}"
+        is_generated = bool(generated_content)
         script = Script(
             user_id=user_id,
             title=script_in.title,
             content=content,
             output_type=script_in.output_type,
             parameters=script_in.parameters,
-            status=0,
+            status=1 if is_generated else 0,
         )
 
         self.db.add(script)

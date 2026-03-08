@@ -1,5 +1,6 @@
 """Content API routes."""
 
+import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -21,14 +22,16 @@ from app.schemas import (
 )
 from app.services import PermissionService, ScriptService, TaskService, WorkService
 from app.tasks import process_content_task
+from app.ai import script_generator
 from app.utils import calculate_cost
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @limiter.limit(RATE_LIMITS["content"])
 @router.post("/scripts", response_model=BaseResponse)
-def create_script(
+async def create_script(
     request: Request,
     script_in: ScriptCreate,
     current_user: User = Depends(get_current_user),
@@ -48,12 +51,36 @@ def create_script(
         if not has_permission:
             raise BadRequestException(detail=message)
 
-    script = script_service.create(current_user.id, script_in)
+    generated_content = None
+    if not (script_in.content and script_in.content.strip()):
+        try:
+            generated = await script_generator.generate_from_keywords(
+                keywords=script_in.keywords or "",
+                output_type=script_in.output_type,
+                style=(script_in.parameters or {}).get("style"),
+                scene_count=(script_in.parameters or {}).get("scene_count", 1),
+            )
+            generated_content = generated.get("script", "")
+        except Exception as exc:
+            # Fallback for offline/test environments or temporary provider failures.
+            logger.warning("Script generation fallback enabled: %s", exc)
+
+    script = script_service.create(
+        current_user.id,
+        script_in,
+        generated_content=generated_content,
+    )
 
     if needs_permission and not permission_service.use_permission(current_user.id, "script", 1):
         raise BadRequestException(detail="使用次数不足")
 
-    return BaseResponse(message="Script created", data={"script_id": script.id})
+    return BaseResponse(
+        message="Script created",
+        data={
+            "script_id": script.id,
+            "script": ScriptResponse.model_validate(script).model_dump(mode="json"),
+        },
+    )
 
 
 @limiter.limit(RATE_LIMITS["general"])
@@ -168,7 +195,11 @@ def create_task(
 
     return BaseResponse(
         message="Task created",
-        data={"task_id": task.id, "task_no": task.task_no},
+        data={
+            "task_id": task.id,
+            "task_no": task.task_no,
+            "task": TaskResponse.model_validate(task).model_dump(mode="json"),
+        },
     )
 
 

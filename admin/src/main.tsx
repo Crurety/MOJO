@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 import AdminLayout from './components/AdminLayout'
 import { I18nProvider } from './i18n'
 import Dashboard from './pages/Dashboard'
+import AIProviderConfig from './pages/AIProviderConfig'
 import Login from './pages/Login'
 import OrderManagement from './pages/OrderManagement'
 import PermissionPrices from './pages/PermissionPrices'
@@ -39,6 +40,7 @@ const App: React.FC = () => {
           <Route path="orders" element={<OrderManagement />} />
           <Route path="revenue" element={<RevenueStats />} />
           <Route path="permissions" element={<PermissionPrices />} />
+          <Route path="ai-config" element={<AIProviderConfig />} />
         </Route>
       </Routes>
     </Router>
@@ -52,4 +54,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </I18nProvider>
   </React.StrictMode>
 )
-

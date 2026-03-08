@@ -32,6 +32,7 @@ const messages: Record<AdminLanguage, MessageDictionary> = {
     'layout.nav.orders': '订单管理',
     'layout.nav.revenue': '收入统计',
     'layout.nav.permissions': '权限价格',
+    'layout.nav.aiConfig': 'AI API 配置',
 
     'login.title': '后台管理登录',
     'login.subtitle': '请输入管理员账号和密码',
@@ -149,6 +150,7 @@ const messages: Record<AdminLanguage, MessageDictionary> = {
     'layout.nav.orders': 'Orders',
     'layout.nav.revenue': 'Revenue',
     'layout.nav.permissions': 'Permission Pricing',
+    'layout.nav.aiConfig': 'AI API Config',
 
     'login.title': 'Admin Login',
     'login.subtitle': 'Please enter administrator credentials',
@@ -319,4 +321,3 @@ export const useI18n = (): I18nContextValue => {
 }
 
 export const getCurrentLanguage = (): AdminLanguage => detectLanguage()
-

@@ -22,6 +22,10 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    "check-video-status": {
+        "task": "app.tasks.content_tasks.check_video_status",
+        "schedule": 300.0,
+    },
     "cleanup-expired-tasks": {
         "task": "app.tasks.content_tasks.cleanup_expired_tasks",
         "schedule": 3600.0,
@@ -29,5 +33,9 @@ celery_app.conf.beat_schedule = {
     "cleanup-old-works": {
         "task": "app.tasks.content_tasks.cleanup_old_works",
         "schedule": 86400.0,
+    },
+    "check-expired-permissions": {
+        "task": "app.tasks.content_tasks.check_expired_permissions",
+        "schedule": 3600.0,
     },
 }

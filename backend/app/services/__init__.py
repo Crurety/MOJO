@@ -6,6 +6,7 @@ from app.services.order_service import OrderService
 from app.services.work_service import WorkService
 from app.services.message_service import MessageService
 from app.services.system_config_service import SystemConfigService
+from app.services.ai_provider_config_service import AIProviderConfigService
 
 __all__ = [
     "UserService",
@@ -16,4 +17,5 @@ __all__ = [
     "WorkService",
     "MessageService",
     "SystemConfigService",
+    "AIProviderConfigService",
 ]

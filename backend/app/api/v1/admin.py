@@ -7,7 +7,14 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_admin
 from app.core.database import get_db
 from app.schemas import BaseResponse
-from app.services import OrderService, PermissionService, TaskService, UserService, WorkService
+from app.services import (
+    AIProviderConfigService,
+    OrderService,
+    PermissionService,
+    TaskService,
+    UserService,
+    WorkService,
+)
 
 router = APIRouter(dependencies=[Depends(get_current_admin)])
 
@@ -156,6 +163,27 @@ def update_permission_prices(prices: dict[str, Any], db: Session = Depends(get_d
     normalized = permission_service.normalize_permission_prices(prices)
     permission_service.save_permission_prices(normalized)
     return BaseResponse(message="Prices updated")
+
+
+@router.get("/ai/providers")
+def get_ai_provider_configs(db: Session = Depends(get_db)):
+    config_service = AIProviderConfigService(db)
+    return config_service.get_providers_for_admin()
+
+
+@router.put("/ai/providers/{provider}", response_model=BaseResponse)
+def update_ai_provider_config(
+    provider: str,
+    payload: dict[str, Any],
+    db: Session = Depends(get_db),
+):
+    config_service = AIProviderConfigService(db)
+    normalized_payload = {
+        key: (value if value is None else str(value))
+        for key, value in payload.items()
+    }
+    config_service.update_provider(provider, normalized_payload)
+    return BaseResponse(message="AI provider config updated")
 
 
 @router.get("/works/quality")

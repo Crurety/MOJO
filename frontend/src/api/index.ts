@@ -112,7 +112,7 @@ export const contentApi = {
   deleteScript: (id: number): Promise<void> =>
     apiClient.delete(`/content/scripts/${id}`),
   
-  createTask: (data: any): Promise<Types.Task> =>
+  createTask: (data: any): Promise<any> =>
     apiClient.post('/content/tasks', data),
   
   getTasks: (skip = 0, limit = 20, status?: number, taskType?: string): Promise<Types.Task[]> => {

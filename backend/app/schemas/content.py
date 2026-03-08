@@ -69,12 +69,18 @@ class TaskCreate(BaseModel):
                 raise ValueError("keywords is required for script tasks")
         elif task_type in {"image", "video"}:
             prompt = value.get("prompt")
-            if not isinstance(prompt, str) or not prompt.strip():
-                raise ValueError("prompt is required for image/video tasks")
+            script_id = value.get("script_id")
+            has_prompt = isinstance(prompt, str) and bool(prompt.strip())
+            has_script_id = isinstance(script_id, int) and script_id > 0
+            if not has_prompt and not has_script_id:
+                raise ValueError("prompt or script_id is required for image/video tasks")
         elif task_type == "ad":
             creative_plan = value.get("creative_plan")
-            if not isinstance(creative_plan, str) or not creative_plan.strip():
-                raise ValueError("creative_plan is required for ad tasks")
+            product_info = value.get("product_info")
+            has_creative_plan = isinstance(creative_plan, str) and bool(creative_plan.strip())
+            has_product_info = isinstance(product_info, str) and bool(product_info.strip())
+            if not has_creative_plan and not has_product_info:
+                raise ValueError("creative_plan or product_info is required for ad tasks")
 
         return value
 

@@ -3,6 +3,14 @@ import { contentApi } from '../api'
 import { translateStatic } from '../i18n'
 import { useTaskStore } from '../store'
 
+const resolveApiErrorMessage = (error: any, fallback: string) => {
+  const detail = error?.response?.data?.detail
+  if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg as string
+  if (typeof detail === 'string') return detail
+  if (typeof error?.response?.data?.message === 'string') return error.response.data.message
+  return fallback
+}
+
 export const useContent = () => {
   const { tasks, setTasks, addTask, currentTask, setCurrentTask } = useTaskStore()
   const [loading, setLoading] = useState(false)
@@ -13,7 +21,10 @@ export const useContent = () => {
       const response = await contentApi.createScript(data)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || translateStatic('hook.content.createFailed') }
+      return {
+        success: false,
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.createFailed')),
+      }
     } finally {
       setLoading(false)
     }
@@ -35,12 +46,15 @@ export const useContent = () => {
     setLoading(true)
     try {
       const response = await contentApi.createTask(data)
-      addTask(response)
+      const task = response?.data?.task
+      if (task?.task_no) {
+        addTask(task)
+      }
       return { success: true, data: response }
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || translateStatic('hook.content.createTaskFailed'),
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.createTaskFailed')),
       }
     } finally {
       setLoading(false)
@@ -56,7 +70,7 @@ export const useContent = () => {
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || translateStatic('hook.content.fetchTaskFailed'),
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.fetchTaskFailed')),
       }
     } finally {
       setLoading(false)
@@ -72,7 +86,7 @@ export const useContent = () => {
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || translateStatic('hook.content.fetchTaskDetailFailed'),
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.fetchTaskDetailFailed')),
       }
     } finally {
       setLoading(false)
@@ -87,7 +101,7 @@ export const useContent = () => {
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || translateStatic('hook.content.fetchWorksFailed'),
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.fetchWorksFailed')),
       }
     } finally {
       setLoading(false)
@@ -100,7 +114,10 @@ export const useContent = () => {
       await contentApi.deleteWork(id)
       return { success: true }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || translateStatic('hook.content.deleteFailed') }
+      return {
+        success: false,
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.deleteFailed')),
+      }
     } finally {
       setLoading(false)
     }
@@ -114,7 +131,7 @@ export const useContent = () => {
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || translateStatic('hook.content.fetchGalleryFailed'),
+        message: resolveApiErrorMessage(error, translateStatic('hook.content.fetchGalleryFailed')),
       }
     } finally {
       setLoading(false)
@@ -168,4 +185,3 @@ export const useTaskPolling = (taskNo: string, onComplete?: (result: unknown) =>
 
   return { isPolling, startPolling }
 }
-
