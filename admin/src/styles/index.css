@@ -865,6 +865,174 @@ textarea {
   background: rgba(17, 37, 62, 0.24);
 }
 
+.admin-ai-page {
+  position: relative;
+}
+
+.admin-ai-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-ai-summary-card {
+  border-radius: 14px;
+  border: 1px solid #d1e0f2;
+  background: linear-gradient(165deg, #ffffff 0%, #f3f8ff 100%);
+  padding: 12px 14px;
+}
+
+.admin-ai-summary-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #607c9b;
+}
+
+.admin-ai-summary-value {
+  margin: 8px 0 0;
+  font-family: 'Sora', 'Manrope', sans-serif;
+  font-size: 1.62rem;
+  font-weight: 700;
+  color: #123259;
+}
+
+.admin-ai-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-ai-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-ai-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-ai-card-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-ai-provider-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(13, 110, 253, 0.2);
+  background: rgba(13, 110, 253, 0.08);
+  color: #0f62db;
+}
+
+.admin-ai-card-desc {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: #5f7a98;
+}
+
+.admin-ai-card-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.admin-ai-key-chip {
+  border-radius: 999px;
+  border: 1px solid #d2e1f4;
+  background: #f6faff;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-ai-key-chip.is-configured {
+  border-color: rgba(13, 159, 110, 0.32);
+  background: rgba(13, 159, 110, 0.11);
+  color: #0f8f64;
+}
+
+.admin-ai-key-chip.is-empty {
+  border-color: rgba(183, 121, 31, 0.36);
+  background: rgba(183, 121, 31, 0.12);
+  color: #9b661b;
+}
+
+.admin-ai-endpoint {
+  border-radius: 11px;
+  border: 1px dashed #c5d7ee;
+  background: #f8fbff;
+  padding: 8px 10px;
+}
+
+.admin-ai-endpoint-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #6583a4;
+  letter-spacing: 0.04em;
+}
+
+.admin-ai-endpoint code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: #24486f;
+}
+
+.admin-ai-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-ai-field {
+  min-width: 0;
+}
+
+.admin-ai-field-full {
+  grid-column: 1 / -1;
+}
+
+.admin-ai-field-tip {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #6783a4;
+}
+
+.admin-ai-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #d8e4f4;
+  padding-top: 10px;
+}
+
+.admin-ai-change-tip {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #5f7a98;
+}
+
+.admin-ai-card-foot .admin-btn {
+  margin-left: auto;
+}
+
 @keyframes adminRise {
   from {
     opacity: 0;
@@ -905,6 +1073,10 @@ textarea {
 
 @media (max-width: 1200px) {
   .admin-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-ai-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -960,6 +1132,10 @@ textarea {
   .admin-top-actions .admin-user-chip {
     display: none;
   }
+
+  .admin-ai-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 780px) {
@@ -974,6 +1150,11 @@ textarea {
 
   .admin-kpi-grid,
   .admin-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-ai-summary,
+  .admin-ai-form-grid {
     grid-template-columns: 1fr;
   }
 
