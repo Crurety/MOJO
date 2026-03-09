@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Disable DB table auto-create side effects and keep tests deterministic.
 os.environ["TESTING"] = "true"
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 
 # Disable rate-limit decorators in tests.
 from app.core import rate_limit
