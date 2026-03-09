@@ -9,26 +9,18 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ className = '' }) =
   const { language, setLanguage, t } = useI18n()
 
   return (
-    <div
-      className={`inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white p-1 ${className}`}
-      role="group"
-      aria-label={t('common.switchLanguage')}
-    >
+    <div className={`admin-lang-switch ${className}`.trim()} role="group" aria-label={t('common.switchLanguage')}>
       <button
         type="button"
         onClick={() => setLanguage('zh')}
-        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-          language === 'zh' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className={`admin-lang-btn ${language === 'zh' ? 'is-active' : ''}`}
       >
-        中
+        ZH
       </button>
       <button
         type="button"
         onClick={() => setLanguage('en')}
-        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-          language === 'en' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className={`admin-lang-btn ${language === 'en' ? 'is-active' : ''}`}
       >
         EN
       </button>
@@ -37,4 +29,3 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ className = '' }) =
 }
 
 export default LanguageSwitcher
-

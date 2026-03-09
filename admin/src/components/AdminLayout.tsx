@@ -1,92 +1,127 @@
-import React from 'react'
+import React, { useMemo, useState } from 'react'
+import {
+  ApiOutlined,
+  BarChartOutlined,
+  CloseOutlined,
+  DashboardOutlined,
+  DollarCircleOutlined,
+  MenuOutlined,
+  OrderedListOutlined,
+  TeamOutlined,
+} from '@ant-design/icons'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { useAuthStore, useUIStore } from '../store'
+import { useAuthStore } from '../store'
 import LanguageSwitcher from './LanguageSwitcher'
 
-const AdminLayout: React.FC = () => {
-  const { admin, logout } = useAuthStore()
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
-  const { t } = useI18n()
-  const location = useLocation()
+type NavItem = {
+  path: string
+  label: string
+  icon: React.ReactNode
+}
 
-  const navItems = [
-    { path: '/admin', label: t('layout.nav.dashboard'), icon: 'DB' },
-    { path: '/admin/users', label: t('layout.nav.users'), icon: 'USR' },
-    { path: '/admin/orders', label: t('layout.nav.orders'), icon: 'ORD' },
-    { path: '/admin/revenue', label: t('layout.nav.revenue'), icon: 'REV' },
-    { path: '/admin/permissions', label: t('layout.nav.permissions'), icon: 'PRI' },
-    { path: '/admin/ai-config', label: t('layout.nav.aiConfig'), icon: 'AI' },
-  ]
+const AdminLayout: React.FC = () => {
+  const location = useLocation()
+  const { admin, logout } = useAuthStore()
+  const { language, t } = useI18n()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navItems: NavItem[] = useMemo(
+    () => [
+      { path: '/admin', label: t('layout.nav.dashboard'), icon: <DashboardOutlined /> },
+      { path: '/admin/users', label: t('layout.nav.users'), icon: <TeamOutlined /> },
+      { path: '/admin/orders', label: t('layout.nav.orders'), icon: <OrderedListOutlined /> },
+      { path: '/admin/revenue', label: t('layout.nav.revenue'), icon: <BarChartOutlined /> },
+      { path: '/admin/permissions', label: t('layout.nav.permissions'), icon: <DollarCircleOutlined /> },
+      { path: '/admin/ai-config', label: t('layout.nav.aiConfig'), icon: <ApiOutlined /> },
+    ],
+    [t]
+  )
+
+  const isActive = (path: string) => {
+    if (path === '/admin') return location.pathname === '/admin'
+    return location.pathname.startsWith(path)
+  }
+
+  const activeNav = navItems.find((item) => isActive(item.path)) || navItems[0]
+  const sidebarNote =
+    language === 'zh'
+      ? '统一管理用户、订单、营收和 AI 服务配置。'
+      : 'Manage users, orders, revenue, and AI services from one surface.'
+
+  const closeMobileMenu = () => setMobileOpen(false)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white shadow-sm">
-        <div className="mx-auto h-16 max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-full items-center justify-between">
-            <div className="flex items-center">
-              <button
-                onClick={toggleSidebar}
-                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 lg:hidden"
-                aria-label={t('layout.toggleSidebar')}
-                type="button"
-              >
-                <span className="text-xl">{sidebarCollapsed ? '+' : 'x'}</span>
-              </button>
-              <Link to="/admin" className="ml-2 flex items-center lg:ml-0">
-                <span className="text-2xl font-bold text-indigo-600">{t('layout.title')}</span>
-              </Link>
+    <div className="admin-app">
+      <header className="admin-header">
+        <div className="admin-header-inner">
+          <div className="admin-brand-wrap">
+            <button
+              type="button"
+              onClick={() => setMobileOpen((v) => !v)}
+              className="admin-mobile-toggle"
+              aria-label={t('layout.toggleSidebar')}
+            >
+              {mobileOpen ? <CloseOutlined /> : <MenuOutlined />}
+            </button>
+            <Link to="/admin" className="admin-brand">
+              <span className="admin-brand-mark">MOJO</span>
+              <span className="admin-brand-sub">OPERATIONS CONSOLE</span>
+            </Link>
+            <div className="admin-header-context">
+              <p className="admin-context-kicker">{t('layout.title')}</p>
+              <p className="admin-context-title">{activeNav.label}</p>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-4">
-              <LanguageSwitcher />
-              <span className="text-gray-600">{admin?.nickname}</span>
-              <span className="text-gray-400">|</span>
-              <button onClick={logout} className="text-gray-500 hover:text-gray-700" type="button">
-                {t('layout.logout')}
-              </button>
-            </div>
+          <div className="admin-top-actions">
+            <LanguageSwitcher />
+            <span className="admin-user-chip">{admin?.nickname || 'Admin'}</span>
+            <button type="button" onClick={logout} className="admin-logout-btn">
+              {t('layout.logout')}
+            </button>
           </div>
         </div>
       </header>
 
-      <div className="flex">
-        <aside
-          className={`${
-            sidebarCollapsed ? '-translate-x-full' : 'translate-x-0'
-          } fixed inset-y-0 left-0 z-50 w-64 transform border-r border-gray-200 bg-white pt-16 transition-transform duration-300 ease-in-out lg:static lg:inset-0 lg:w-64 lg:translate-x-0 lg:pt-0`}
-        >
-          <nav className="mt-5 px-2">
+      <div className="admin-shell">
+        <aside className={`admin-sidebar ${mobileOpen ? 'is-open' : ''}`}>
+          <div className="admin-sidebar-head">
+            <p className="admin-sidebar-eyebrow">{t('layout.title')}</p>
+            <h2 className="admin-sidebar-title">Mission Panel</h2>
+            <p className="admin-sidebar-note">{sidebarNote}</p>
+          </div>
+
+          <nav className="admin-nav">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium ${
-                  location.pathname === item.path
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                onClick={closeMobileMenu}
+                className={`admin-nav-item ${isActive(item.path) ? 'is-active' : ''}`}
               >
-                <span className="mr-3 text-xs font-semibold">{item.icon}</span>
-                {item.label}
+                <span className="admin-nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
               </Link>
             ))}
           </nav>
+
+          <div className="admin-sidebar-footer">
+            <p className="admin-sidebar-footer-title">{language === 'zh' ? '当前登录' : 'Current session'}</p>
+            <p className="admin-sidebar-footer-text">{admin?.nickname || 'Admin'}</p>
+          </div>
         </aside>
 
-        <main className="min-w-0 flex-1">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="admin-main">
+          <div className="admin-main-inner">
             <Outlet />
           </div>
         </main>
       </div>
 
-      {sidebarCollapsed && (
-        <div className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden" onClick={toggleSidebar} />
-      )}
+      {mobileOpen && <button type="button" className="admin-mobile-mask lg:hidden" onClick={closeMobileMenu} />}
     </div>
   )
 }
 
 export default AdminLayout
-
