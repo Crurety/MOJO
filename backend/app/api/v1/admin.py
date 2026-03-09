@@ -54,18 +54,7 @@ def get_users(
     db: Session = Depends(get_db),
 ):
     user_service = UserService(db)
-    users = user_service.get_list(skip, limit, status)
-
-    if keyword:
-        users = [
-            u
-            for u in users
-            if keyword in (u.email or "")
-            or keyword in (u.phone or "")
-            or keyword in (u.nickname or "")
-        ]
-
-    total = user_service.get_total(status)
+    users, total = user_service.get_admin_user_list(skip, limit, status, keyword)
     return {
         "items": [
             {
@@ -73,12 +62,15 @@ def get_users(
                 "email": u.email,
                 "phone": u.phone,
                 "nickname": u.nickname,
+                "balance": float(u.balance or 0),
                 "status": u.status,
                 "created_at": u.created_at.isoformat(),
             }
             for u in users
         ],
         "total": total,
+        "skip": skip,
+        "limit": limit,
     }
 
 
@@ -102,10 +94,11 @@ def get_orders(
     limit: int = Query(20, ge=1, le=100),
     status: int | None = Query(None),
     order_type: str | None = Query(None),
+    keyword: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     order_service = OrderService(db)
-    orders = order_service.get_all_orders(skip, limit, status, order_type)
+    orders, total = order_service.get_all_orders_with_total(skip, limit, status, order_type, keyword)
 
     return {
         "items": [
@@ -113,15 +106,20 @@ def get_orders(
                 "id": o.id,
                 "order_no": o.order_no,
                 "user_id": o.user_id,
+                "user_nickname": o.user.nickname if o.user else "",
+                "order_type": o.order_type,
                 "product_name": o.product_name,
                 "amount": float(o.amount),
                 "status": o.status,
                 "payment_method": o.payment_method,
                 "created_at": o.created_at.isoformat(),
-                "paid_at": o.paid_at.isoformat() if o.paid_at else None,
+                "completed_at": o.paid_at.isoformat() if o.paid_at else None,
             }
             for o in orders
-        ]
+        ],
+        "total": total,
+        "skip": skip,
+        "limit": limit,
     }
 
 

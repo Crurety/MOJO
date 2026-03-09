@@ -1033,6 +1033,271 @@ textarea {
   margin-left: auto;
 }
 
+.admin-revenue-page {
+  position: relative;
+}
+
+.admin-revenue-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-revenue-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-revenue-filter-head .admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-revenue-filter-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+}
+
+.admin-revenue-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-revenue-quick-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.admin-revenue-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-revenue-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-kpi-card.is-accent-card::before {
+  background: linear-gradient(100deg, #0d6efd, #10b981);
+}
+
+.admin-revenue-kpi-detail {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #617c9a;
+}
+
+.admin-revenue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-revenue-trend-visual {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 190px;
+  border-radius: 12px;
+  border: 1px dashed #b8cde7;
+  background:
+    linear-gradient(180deg, #f9fbff, #f2f7ff),
+    repeating-linear-gradient(
+      0deg,
+      rgba(13, 110, 253, 0.05),
+      rgba(13, 110, 253, 0.05) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+  padding: 14px;
+}
+
+.admin-revenue-trend-visual span {
+  flex: 1;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, rgba(13, 110, 253, 0.82), rgba(0, 163, 169, 0.72));
+  box-shadow: 0 7px 16px rgba(13, 110, 253, 0.2);
+}
+
+.admin-revenue-source-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-revenue-source-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 10px;
+  border: 1px solid #d4e3f4;
+  background: #f7fbff;
+  padding: 0.62rem 0.72rem;
+  color: #355879;
+  font-size: 0.86rem;
+}
+
+.admin-revenue-source-item strong {
+  color: #195f8a;
+}
+
+.admin-revenue-panel-note {
+  margin: 10px 0 0;
+  color: #5f7b98;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.admin-pricing-page {
+  position: relative;
+}
+
+.admin-pricing-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-pricing-summary-card {
+  border-radius: 14px;
+  border: 1px solid #d1e0f2;
+  background: linear-gradient(165deg, #ffffff 0%, #f3f8ff 100%);
+  padding: 12px 14px;
+}
+
+.admin-pricing-summary-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #607c9b;
+}
+
+.admin-pricing-summary-value {
+  margin: 8px 0 0;
+  font-family: 'Sora', 'Manrope', sans-serif;
+  font-size: 1.46rem;
+  font-weight: 700;
+  color: #123259;
+}
+
+.admin-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-pricing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-pricing-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-pricing-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-pricing-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(13, 110, 253, 0.2);
+  background: rgba(13, 110, 253, 0.08);
+  color: #0f62db;
+}
+
+.admin-pricing-card-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #607c9b;
+}
+
+.admin-pricing-input-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-pricing-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-pricing-input-wrap span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  border-radius: 10px;
+  border: 1px solid #c3d5ed;
+  background: #f5f9ff;
+  color: #45698e;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.52rem 0.4rem;
+}
+
+.admin-pricing-card-foot {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid #d8e4f4;
+  padding-top: 10px;
+}
+
+.admin-pricing-card-foot p {
+  margin: 0;
+  color: #607c9b;
+  font-size: 0.82rem;
+}
+
+.admin-pricing-card-foot strong {
+  color: #1a4a73;
+  font-size: 0.86rem;
+}
+
+.admin-pricing-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-pricing-change-tip {
+  margin: 0;
+  color: #597594;
+  font-size: 0.84rem;
+}
+
+.admin-pricing-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 @keyframes adminRise {
   from {
     opacity: 0;
@@ -1073,6 +1338,14 @@ textarea {
 
 @media (max-width: 1200px) {
   .admin-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-revenue-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-pricing-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1133,6 +1406,32 @@ textarea {
     display: none;
   }
 
+  .admin-revenue-filter-body {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-grid,
+  .admin-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pricing-input-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-pricing-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-pricing-action-buttons {
+    width: 100%;
+  }
+
+  .admin-pricing-action-buttons .admin-btn {
+    flex: 1;
+  }
+
   .admin-ai-grid {
     grid-template-columns: 1fr;
   }
@@ -1151,6 +1450,27 @@ textarea {
   .admin-kpi-grid,
   .admin-grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-kpi-grid,
+  .admin-pricing-summary-grid,
+  .admin-revenue-date-grid,
+  .admin-pricing-input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-quick-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-revenue-preset-group {
+    width: 100%;
+  }
+
+  .admin-revenue-preset-group .admin-btn,
+  .admin-revenue-quick-actions > .admin-btn {
+    flex: 1;
   }
 
   .admin-ai-summary,

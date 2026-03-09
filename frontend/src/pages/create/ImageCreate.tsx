@@ -37,7 +37,7 @@ const ImageCreate = () => {
 
     const task = response.data?.data?.task
     setTaskNo(task?.task_no || '')
-    message.success('图片生成任务已提交')
+    message.success(t('imageCreate.toast.submitted'))
   }
 
   return (
@@ -45,7 +45,7 @@ const ImageCreate = () => {
       <Title level={2} className="!mb-2 !text-[#f2fbff]">
         {t('page.imageCreate.title')}
       </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">对接 Stability API，提交后可在任务中心查看进度与结果。</Paragraph>
+      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('imageCreate.desc')}</Paragraph>
 
       <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
         <Form<ImageFormValues>
@@ -53,12 +53,16 @@ const ImageCreate = () => {
           initialValues={{ clarity: '1080p', count: 1 }}
           onFinish={handleSubmit}
         >
-          <Form.Item label="图片提示词" name="prompt" rules={[{ required: true, message: '请输入提示词' }]}>
-            <TextArea rows={4} placeholder="例如：A futuristic city skyline at sunset, cinematic lighting" />
+          <Form.Item
+            label={t('imageCreate.form.prompt.label')}
+            name="prompt"
+            rules={[{ required: true, message: t('imageCreate.form.prompt.required') }]}
+          >
+            <TextArea rows={4} placeholder={t('imageCreate.form.prompt.placeholder')} />
           </Form.Item>
 
           <Space style={{ width: '100%' }} size={16} wrap>
-            <Form.Item label="清晰度" name="clarity" style={{ minWidth: 180 }}>
+            <Form.Item label={t('imageCreate.form.clarity.label')} name="clarity" style={{ minWidth: 180 }}>
               <Select
                 options={[
                   { value: '720p', label: '720p' },
@@ -67,27 +71,30 @@ const ImageCreate = () => {
                 ]}
               />
             </Form.Item>
-            <Form.Item label="风格（可选）" name="style" style={{ minWidth: 220 }}>
-              <Input placeholder="photographic / digital-art / anime" />
+            <Form.Item label={t('imageCreate.form.style.label')} name="style" style={{ minWidth: 220 }}>
+              <Input placeholder={t('imageCreate.form.style.placeholder')} />
             </Form.Item>
-            <Form.Item label="生成数量" name="count" style={{ minWidth: 180 }}>
+            <Form.Item label={t('imageCreate.form.count.label')} name="count" style={{ minWidth: 180 }}>
               <InputNumber min={1} max={4} style={{ width: '100%' }} />
             </Form.Item>
           </Space>
 
           <Button type="primary" htmlType="submit" loading={loading}>
-            提交图片任务
+            {t('imageCreate.submit')}
           </Button>
         </Form>
       </Card>
 
       <div className="mt-5 text-sm text-[#9cc0db]">
         {taskNo ? (
-          <>
-            <Text className="!text-[#d6ebff]">任务号：{taskNo}</Text>，前往 <Link to="/tasks">任务中心</Link> 查看结果。
-          </>
+          <Space size={8} wrap>
+            <Text className="!text-[#d6ebff]">
+              {t('common.taskNoLabel')}：{taskNo}
+            </Text>
+            <Link to="/tasks">{t('common.goToTaskCenter')}</Link>
+          </Space>
         ) : (
-          '提交后会显示任务号。'
+          t('common.afterSubmitShowTaskNo')
         )}
       </div>
     </section>
@@ -95,4 +102,3 @@ const ImageCreate = () => {
 }
 
 export default ImageCreate
-

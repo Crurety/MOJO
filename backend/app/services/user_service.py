@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
@@ -169,6 +170,32 @@ class UserService:
         if status is not None:
             query = query.filter(User.status == status)
         return query.count()
+
+    def get_admin_user_list(
+        self,
+        skip: int = 0,
+        limit: int = 20,
+        status: int | None = None,
+        keyword: str | None = None,
+    ) -> tuple[List[User], int]:
+        query = self.db.query(User)
+        if status is not None:
+            query = query.filter(User.status == status)
+
+        keyword_text = (keyword or "").strip()
+        if keyword_text:
+            like_pattern = f"%{keyword_text}%"
+            query = query.filter(
+                or_(
+                    User.email.ilike(like_pattern),
+                    User.phone.ilike(like_pattern),
+                    User.nickname.ilike(like_pattern),
+                )
+            )
+
+        total = query.count()
+        users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+        return users, total
 
     def get_total_by_date(self, date) -> int:
         start = datetime.combine(date, datetime.min.time())

@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime
@@ -127,8 +128,40 @@ class OrderService:
             query = query.filter(Order.status == status)
         if order_type:
             query = query.filter(Order.order_type == order_type)
-        
+
         return query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+
+    def get_all_orders_with_total(
+        self,
+        skip: int = 0,
+        limit: int = 20,
+        status: int = None,
+        order_type: str = None,
+        keyword: str | None = None,
+    ) -> tuple[List[Order], int]:
+        query = self.db.query(Order)
+
+        if status is not None:
+            query = query.filter(Order.status == status)
+        if order_type:
+            query = query.filter(Order.order_type == order_type)
+
+        keyword_text = (keyword or "").strip()
+        if keyword_text:
+            like_pattern = f"%{keyword_text}%"
+            query = query.join(User, User.id == Order.user_id).filter(
+                or_(
+                    Order.order_no.ilike(like_pattern),
+                    Order.product_name.ilike(like_pattern),
+                    User.nickname.ilike(like_pattern),
+                    User.email.ilike(like_pattern),
+                    User.phone.ilike(like_pattern),
+                )
+            )
+
+        total = query.count()
+        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+        return orders, total
     
     def get_total_revenue(self, start_date: datetime = None, end_date: datetime = None) -> Decimal:
         query = self.db.query(Order).filter(Order.status == 1)

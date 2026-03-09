@@ -19,28 +19,12 @@ type TaskRecord = {
   completed_at?: string
 }
 
-const statusMap: Record<number, { label: string; color: string }> = {
-  0: { label: '排队中', color: 'default' },
-  1: { label: '处理中', color: 'processing' },
-  2: { label: '已完成', color: 'success' },
-  3: { label: '失败', color: 'error' },
+const statusColorMap: Record<number, string> = {
+  0: 'default',
+  1: 'processing',
+  2: 'success',
+  3: 'error',
 }
-
-const taskTypeOptions = [
-  { value: '', label: '全部类型' },
-  { value: 'script', label: '脚本' },
-  { value: 'image', label: '图片' },
-  { value: 'video', label: '视频' },
-  { value: 'ad', label: '广告' },
-]
-
-const statusOptions = [
-  { value: '', label: '全部状态' },
-  { value: '0', label: '排队中' },
-  { value: '1', label: '处理中' },
-  { value: '2', label: '已完成' },
-  { value: '3', label: '失败' },
-]
 
 const Tasks = () => {
   const { t } = useI18n()
@@ -48,6 +32,48 @@ const Tasks = () => {
   const [tasks, setTasks] = useState<TaskRecord[]>([])
   const [taskType, setTaskType] = useState<string>('')
   const [status, setStatus] = useState<string>('')
+
+  const taskTypeLabelMap = useMemo(
+    () => ({
+      script: t('tasks.filter.type.script'),
+      image: t('tasks.filter.type.image'),
+      video: t('tasks.filter.type.video'),
+      ad: t('tasks.filter.type.ad'),
+    }),
+    [t]
+  )
+
+  const statusLabelMap = useMemo(
+    () => ({
+      0: t('tasks.status.0'),
+      1: t('tasks.status.1'),
+      2: t('tasks.status.2'),
+      3: t('tasks.status.3'),
+    }),
+    [t]
+  )
+
+  const taskTypeOptions = useMemo(
+    () => [
+      { value: '', label: t('tasks.filter.allTypes') },
+      { value: 'script', label: t('tasks.filter.type.script') },
+      { value: 'image', label: t('tasks.filter.type.image') },
+      { value: 'video', label: t('tasks.filter.type.video') },
+      { value: 'ad', label: t('tasks.filter.type.ad') },
+    ],
+    [t]
+  )
+
+  const statusOptions = useMemo(
+    () => [
+      { value: '', label: t('tasks.filter.allStatuses') },
+      { value: '0', label: statusLabelMap[0] },
+      { value: '1', label: statusLabelMap[1] },
+      { value: '2', label: statusLabelMap[2] },
+      { value: '3', label: statusLabelMap[3] },
+    ],
+    [statusLabelMap, t]
+  )
 
   const loadTasks = async () => {
     const response = await fetchTasks(
@@ -75,85 +101,95 @@ const Tasks = () => {
   const columns: ColumnsType<TaskRecord> = useMemo(
     () => [
       {
-        title: '任务号',
+        title: t('tasks.table.taskNo'),
         dataIndex: 'task_no',
         key: 'task_no',
         width: 220,
       },
       {
-        title: '类型',
+        title: t('tasks.table.type'),
         dataIndex: 'task_type',
         key: 'task_type',
         width: 100,
+        render: (value: string) => taskTypeLabelMap[value as keyof typeof taskTypeLabelMap] || value,
       },
       {
-        title: '状态',
+        title: t('tasks.table.status'),
         dataIndex: 'status',
         key: 'status',
         width: 120,
         render: (value: number) => {
-          const meta = statusMap[value] || { label: String(value), color: 'default' }
-          return <Tag color={meta.color}>{meta.label}</Tag>
+          const label = statusLabelMap[value as keyof typeof statusLabelMap] || String(value)
+          const color = statusColorMap[value] || 'default'
+          return <Tag color={color}>{label}</Tag>
         },
       },
       {
-        title: '进度',
+        title: t('tasks.table.progress'),
         dataIndex: 'progress',
         key: 'progress',
         width: 100,
         render: (value: number) => `${value || 0}%`,
       },
       {
-        title: '结果',
+        title: t('tasks.table.result'),
         dataIndex: 'result_url',
         key: 'result_url',
         render: (value: string) =>
           value ? (
             <a href={value} target="_blank" rel="noreferrer">
-              查看
+              {t('tasks.table.view')}
             </a>
           ) : (
             '-'
           ),
       },
       {
-        title: '错误信息',
+        title: t('tasks.table.errorMessage'),
         dataIndex: 'error_message',
         key: 'error_message',
         render: (value: string) => value || '-',
       },
       {
-        title: '创建时间',
+        title: t('tasks.table.createdAt'),
         dataIndex: 'created_at',
         key: 'created_at',
         width: 180,
       },
     ],
-    []
+    [statusLabelMap, t, taskTypeLabelMap]
   )
 
   return (
-    <section className="section-shell border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-8">
+    <section className="task-center-shell section-shell border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-8">
       <Title level={2} className="!mb-2 !text-[#f2fbff]">
         {t('page.tasks.title')}
       </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">任务状态每 5 秒自动刷新，点击结果可直接查看生成内容。</Paragraph>
+      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('tasks.desc.autoRefresh')}</Paragraph>
 
-      <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
-        <Space wrap className="!mb-4">
+      <Card className="task-center-card !border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
+        <Space wrap className="task-center-toolbar !mb-4">
           <Select
             value={taskType}
             onChange={setTaskType}
             options={taskTypeOptions}
+            popupClassName="task-center-select-dropdown"
             style={{ width: 180 }}
           />
-          <Select value={status} onChange={setStatus} options={statusOptions} style={{ width: 180 }} />
-          <Button onClick={() => void loadTasks()} loading={loading}>
-            刷新
+          <Select
+            value={status}
+            onChange={setStatus}
+            options={statusOptions}
+            popupClassName="task-center-select-dropdown"
+            style={{ width: 180 }}
+          />
+          <Button className="task-center-refresh-btn" onClick={() => void loadTasks()} loading={loading}>
+            {t('tasks.actions.refresh')}
           </Button>
         </Space>
 
         <Table<TaskRecord>
+          className="task-center-table"
           rowKey="id"
           columns={columns}
           dataSource={tasks}

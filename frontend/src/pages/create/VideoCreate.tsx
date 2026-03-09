@@ -37,7 +37,7 @@ const VideoCreate = () => {
 
     const task = response.data?.data?.task
     setTaskNo(task?.task_no || '')
-    message.success('视频生成任务已提交')
+    message.success(t('videoCreate.toast.submitted'))
   }
 
   return (
@@ -45,7 +45,7 @@ const VideoCreate = () => {
       <Title level={2} className="!mb-2 !text-[#f2fbff]">
         {t('page.videoCreate.title')}
       </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">对接 Runway API，视频任务会异步生成并在任务中心更新状态。</Paragraph>
+      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('videoCreate.desc')}</Paragraph>
 
       <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
         <Form<VideoFormValues>
@@ -53,15 +53,19 @@ const VideoCreate = () => {
           initialValues={{ duration: 6, clarity: '1080p' }}
           onFinish={handleSubmit}
         >
-          <Form.Item label="视频提示词" name="prompt" rules={[{ required: true, message: '请输入提示词' }]}>
-            <TextArea rows={4} placeholder="例如：A startup product launch clip, energetic pacing, bold typography" />
+          <Form.Item
+            label={t('videoCreate.form.prompt.label')}
+            name="prompt"
+            rules={[{ required: true, message: t('videoCreate.form.prompt.required') }]}
+          >
+            <TextArea rows={4} placeholder={t('videoCreate.form.prompt.placeholder')} />
           </Form.Item>
 
           <Space style={{ width: '100%' }} size={16} wrap>
-            <Form.Item label="时长（秒）" name="duration" style={{ minWidth: 180 }}>
+            <Form.Item label={t('videoCreate.form.duration.label')} name="duration" style={{ minWidth: 180 }}>
               <InputNumber min={3} max={60} style={{ width: '100%' }} />
             </Form.Item>
-            <Form.Item label="清晰度" name="clarity" style={{ minWidth: 180 }}>
+            <Form.Item label={t('videoCreate.form.clarity.label')} name="clarity" style={{ minWidth: 180 }}>
               <Select
                 options={[
                   { value: '720p', label: '720p' },
@@ -70,24 +74,27 @@ const VideoCreate = () => {
                 ]}
               />
             </Form.Item>
-            <Form.Item label="风格（可选）" name="style" style={{ minWidth: 220 }}>
-              <Input placeholder="cinematic / commercial / documentary" />
+            <Form.Item label={t('videoCreate.form.style.label')} name="style" style={{ minWidth: 220 }}>
+              <Input placeholder={t('videoCreate.form.style.placeholder')} />
             </Form.Item>
           </Space>
 
           <Button type="primary" htmlType="submit" loading={loading}>
-            提交视频任务
+            {t('videoCreate.submit')}
           </Button>
         </Form>
       </Card>
 
       <div className="mt-5 text-sm text-[#9cc0db]">
         {taskNo ? (
-          <>
-            <Text className="!text-[#d6ebff]">任务号：{taskNo}</Text>，前往 <Link to="/tasks">任务中心</Link> 查看进度。
-          </>
+          <Space size={8} wrap>
+            <Text className="!text-[#d6ebff]">
+              {t('common.taskNoLabel')}：{taskNo}
+            </Text>
+            <Link to="/tasks">{t('common.goToTaskCenter')}</Link>
+          </Space>
         ) : (
-          '提交后会显示任务号。'
+          t('common.afterSubmitShowTaskNo')
         )}
       </div>
     </section>
@@ -95,4 +102,3 @@ const VideoCreate = () => {
 }
 
 export default VideoCreate
-

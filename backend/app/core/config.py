@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     ADMIN_INIT_PASSWORD: Optional[str] = None
     ADMIN_INIT_EMAIL: Optional[str] = None
     ADMIN_INIT_NICKNAME: str = "Administrator"
+    ADMIN_USER_IDS: list[int] = []
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 

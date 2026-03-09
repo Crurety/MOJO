@@ -384,6 +384,185 @@ a:active {
   color: var(--text-1) !important;
 }
 
+.task-center-shell {
+  background:
+    linear-gradient(180deg, rgba(8, 22, 40, 0.55), rgba(5, 14, 28, 0.4)),
+    linear-gradient(90deg, rgba(127, 193, 245, 0.07) 1px, transparent 1px);
+  background-size: auto, 56px 100%;
+}
+
+.task-center-card {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.task-center-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(560px 260px at 20% 0%, rgba(105, 210, 255, 0.12), transparent 72%);
+}
+
+.task-center-toolbar .ant-select-selector {
+  border-color: rgba(126, 194, 238, 0.44) !important;
+  background: rgba(7, 22, 40, 0.88) !important;
+}
+
+.task-center-refresh-btn.ant-btn {
+  border-color: rgba(126, 194, 238, 0.44) !important;
+  background: rgba(8, 22, 40, 0.88) !important;
+  color: var(--text-1) !important;
+}
+
+.task-center-refresh-btn.ant-btn:hover {
+  border-color: rgba(148, 219, 255, 0.68) !important;
+  background: rgba(14, 34, 56, 0.95) !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-table {
+  background: transparent !important;
+  color: var(--text-2) !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-table-content,
+.task-center-table.ant-table-wrapper .ant-table-content table,
+.task-center-table.ant-table-wrapper .ant-table-body {
+  background: transparent !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-table-container {
+  border: 1px solid rgba(126, 194, 238, 0.3) !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-table-thead > tr > th,
+.task-center-table.ant-table-wrapper .ant-table-tbody > tr > td,
+.task-center-table.ant-table-wrapper .ant-empty-description {
+  font-family: 'Space Grotesk', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+  letter-spacing: 0.01em;
+}
+
+.task-center-table .ant-table-thead > tr > th {
+  background: linear-gradient(180deg, rgba(19, 42, 66, 0.92), rgba(12, 30, 50, 0.9)) !important;
+  border-bottom: 1px solid rgba(126, 194, 238, 0.28) !important;
+  border-inline-end: 1px solid rgba(126, 194, 238, 0.16) !important;
+  color: #e6f5ff !important;
+  font-weight: 600;
+}
+
+.task-center-table .ant-table-thead > tr > th:last-child {
+  border-inline-end: none !important;
+}
+
+.task-center-table .ant-table-tbody > tr > td {
+  background: linear-gradient(180deg, rgba(7, 21, 39, 0.66), rgba(7, 19, 35, 0.58)) !important;
+  border-bottom: 1px solid rgba(126, 194, 238, 0.14) !important;
+  color: #c7e0f3 !important;
+  font-size: 14px;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(116, 205, 255, 0.12);
+}
+
+.task-center-table .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: linear-gradient(180deg, rgba(13, 40, 66, 0.78), rgba(11, 33, 55, 0.72)) !important;
+  color: #e6f5ff !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-placeholder > td,
+.task-center-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-placeholder:hover > td {
+  background: linear-gradient(180deg, rgba(11, 31, 52, 0.6), rgba(7, 21, 37, 0.54)) !important;
+  border-bottom: 1px solid rgba(126, 194, 238, 0.14) !important;
+  color: #9fc1dc !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-empty {
+  color: #9fc1dc !important;
+  font-family: 'Space Grotesk', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+}
+
+.task-center-table .ant-empty-description {
+  color: #9fc1dc !important;
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: 0 0 8px rgba(112, 214, 255, 0.18);
+}
+
+.task-center-table.ant-table-wrapper .ant-empty-img-simple-ellipse {
+  fill: rgba(138, 193, 236, 0.22) !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-empty-img-simple-g {
+  stroke: rgba(175, 217, 246, 0.58) !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-empty-img-simple-path {
+  fill: rgba(175, 217, 246, 0.34) !important;
+}
+
+.task-center-table .ant-table-cell a {
+  color: #7ce7ff !important;
+}
+
+.task-center-table .ant-table-cell a:hover {
+  color: #b7f4ff !important;
+}
+
+.task-center-table .ant-pagination .ant-pagination-item,
+.task-center-table .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+.task-center-table .ant-pagination .ant-pagination-next .ant-pagination-item-link {
+  border-color: rgba(126, 194, 238, 0.34) !important;
+  background: rgba(7, 21, 39, 0.82) !important;
+  color: #b9d6ee !important;
+}
+
+.task-center-table .ant-pagination .ant-pagination-item-active {
+  border-color: rgba(140, 224, 255, 0.7) !important;
+  background: linear-gradient(90deg, rgba(18, 70, 98, 0.92), rgba(28, 119, 152, 0.9)) !important;
+}
+
+.task-center-table .ant-pagination .ant-pagination-item-active a {
+  color: #e9f8ff !important;
+}
+
+.task-center-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+.task-center-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.task-center-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar-track,
+.task-center-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar-track {
+  background: rgba(6, 18, 33, 0.62);
+}
+
+.task-center-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar-thumb,
+.task-center-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(56, 145, 181, 0.86), rgba(78, 200, 236, 0.86));
+}
+
+.task-center-select-dropdown {
+  background: rgba(7, 21, 39, 0.96) !important;
+  border: 1px solid rgba(126, 194, 238, 0.32) !important;
+  border-radius: 0 !important;
+  backdrop-filter: blur(6px);
+}
+
+.task-center-select-dropdown .ant-select-item {
+  color: #bfdcf2 !important;
+}
+
+.task-center-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: rgba(18, 62, 93, 0.82) !important;
+  color: #e9f8ff !important;
+}
+
+.task-center-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: rgba(14, 46, 74, 0.9) !important;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

@@ -45,7 +45,7 @@ const AdCreate = () => {
 
     const task = response.data?.data?.task
     setTaskNo(task?.task_no || '')
-    message.success('广告任务已提交')
+    message.success(t('adCreate.toast.submitted'))
   }
 
   return (
@@ -53,7 +53,7 @@ const AdCreate = () => {
       <Title level={2} className="!mb-2 !text-[#f2fbff]">
         {t('page.adCreate.title')}
       </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">由 OpenAI 生成创意方案，再调用 Stability/Runway 生成广告素材。</Paragraph>
+      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('adCreate.desc')}</Paragraph>
 
       <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
         <Form<AdFormValues>
@@ -63,15 +63,15 @@ const AdCreate = () => {
           onFinish={handleSubmit}
         >
           <Space style={{ width: '100%' }} size={16} wrap>
-            <Form.Item label="广告类型" name="ad_type" style={{ minWidth: 220 }}>
+            <Form.Item label={t('adCreate.form.adType.label')} name="ad_type" style={{ minWidth: 220 }}>
               <Select
                 options={[
-                  { value: 'image', label: '图像广告' },
-                  { value: 'video', label: '视频广告' },
+                  { value: 'image', label: t('adCreate.form.adType.image') },
+                  { value: 'video', label: t('adCreate.form.adType.video') },
                 ]}
               />
             </Form.Item>
-            <Form.Item label="清晰度" name="clarity" style={{ minWidth: 180 }}>
+            <Form.Item label={t('adCreate.form.clarity.label')} name="clarity" style={{ minWidth: 180 }}>
               <Select
                 options={[
                   { value: '720p', label: '720p' },
@@ -81,49 +81,52 @@ const AdCreate = () => {
               />
             </Form.Item>
             {adType === 'video' && (
-              <Form.Item label="时长（秒）" name="duration" style={{ minWidth: 180 }}>
+              <Form.Item label={t('adCreate.form.duration.label')} name="duration" style={{ minWidth: 180 }}>
                 <InputNumber min={5} max={60} style={{ width: '100%' }} />
               </Form.Item>
             )}
           </Space>
 
           <Form.Item
-            label="产品信息"
+            label={t('adCreate.form.productInfo.label')}
             name="product_info"
-            rules={[{ required: true, message: '请输入产品信息' }]}
+            rules={[{ required: true, message: t('adCreate.form.productInfo.required') }]}
           >
-            <TextArea rows={3} placeholder="例如：AI效率工具，主打团队协作与自动化流程" />
+            <TextArea rows={3} placeholder={t('adCreate.form.productInfo.placeholder')} />
           </Form.Item>
 
           <Form.Item
-            label="目标受众"
+            label={t('adCreate.form.targetAudience.label')}
             name="target_audience"
-            rules={[{ required: true, message: '请输入目标受众' }]}
+            rules={[{ required: true, message: t('adCreate.form.targetAudience.required') }]}
           >
-            <Input placeholder="例如：25-35 岁互联网产品经理" />
+            <Input placeholder={t('adCreate.form.targetAudience.placeholder')} />
           </Form.Item>
 
-          <Form.Item label="品牌风格（可选）" name="brand_style">
-            <Input placeholder="例如：科技感、专业、可信赖" />
+          <Form.Item label={t('adCreate.form.brandStyle.label')} name="brand_style">
+            <Input placeholder={t('adCreate.form.brandStyle.placeholder')} />
           </Form.Item>
 
-          <Form.Item label="创意方案（可选，留空则由系统自动生成）" name="creative_plan">
-            <TextArea rows={4} placeholder="可手动输入创意方案，或留空自动生成" />
+          <Form.Item label={t('adCreate.form.creativePlan.label')} name="creative_plan">
+            <TextArea rows={4} placeholder={t('adCreate.form.creativePlan.placeholder')} />
           </Form.Item>
 
           <Button type="primary" htmlType="submit" loading={loading}>
-            提交广告任务
+            {t('adCreate.submit')}
           </Button>
         </Form>
       </Card>
 
       <div className="mt-5 text-sm text-[#9cc0db]">
         {taskNo ? (
-          <>
-            <Text className="!text-[#d6ebff]">任务号：{taskNo}</Text>，前往 <Link to="/tasks">任务中心</Link> 查看结果。
-          </>
+          <Space size={8} wrap>
+            <Text className="!text-[#d6ebff]">
+              {t('common.taskNoLabel')}：{taskNo}
+            </Text>
+            <Link to="/tasks">{t('common.goToTaskCenter')}</Link>
+          </Space>
         ) : (
-          '提交后会显示任务号。'
+          t('common.afterSubmitShowTaskNo')
         )}
       </div>
     </section>
@@ -131,4 +134,3 @@ const AdCreate = () => {
 }
 
 export default AdCreate
-
