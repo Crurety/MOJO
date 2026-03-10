@@ -1239,32 +1239,58 @@ textarea {
 .admin-pricing-input-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
-.admin-pricing-input-grid > div {
+.admin-pricing-field {
+  display: grid;
+  gap: 6px;
   min-width: 0;
+}
+
+.admin-pricing-field-label {
+  margin-bottom: 0;
 }
 
 .admin-pricing-input-wrap {
-  display: flex;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+  border-radius: 12px;
+  border: 1px solid #c4d6ee;
+  background: linear-gradient(180deg, #f9fbff 0%, #f2f7ff 100%);
+  padding: 4px;
   width: 100%;
   min-width: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.admin-pricing-input-wrap .admin-input {
-  flex: 1 1 0;
-  width: 0;
+.admin-pricing-input-wrap:focus-within {
+  border-color: #73a9ef;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.11);
+}
+
+.admin-pricing-input-wrap .admin-pricing-input {
+  width: 100%;
   min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.52rem 0.4rem;
 }
 
-.admin-pricing-input-wrap span {
+.admin-pricing-input-wrap .admin-pricing-input:focus {
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+.admin-pricing-input-prefix {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
+  min-height: 36px;
   border-radius: 10px;
   border: 1px solid #c3d5ed;
   background: #f5f9ff;
