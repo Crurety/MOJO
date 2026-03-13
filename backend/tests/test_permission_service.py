@@ -106,3 +106,15 @@ class TestPermissionService:
         success = permission_service.consume_permission(test_user.id, "script", 5)
 
         assert success is False
+
+    def test_consume_permission_across_multiple_rows(self, db, test_user):
+        permission_service = PermissionService(db)
+
+        permission_service.grant_permission(test_user.id, "image", "per_use", count=2)
+        permission_service.grant_permission(test_user.id, "image", "per_use", count=3)
+
+        assert permission_service.check_permission(test_user.id, "image", required_count=5) is True
+        assert permission_service.consume_permission(test_user.id, "image", 4) is True
+
+        permissions = permission_service._get_permissions_for_type(test_user.id, "image")
+        assert sum(permission.used_count for permission in permissions) == 4

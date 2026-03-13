@@ -68,17 +68,22 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
   permissions: [],
   setPermissions: (permissions) => set({ permissions }),
   hasPermission: (type) => {
-    const perm = get().permissions.find((p) => p.permission_type === type && p.status === 1)
-    if (!perm) return false
-    if (perm.payment_mode === 'per_use') {
-      return perm.total_count - perm.used_count > 0
-    }
-    return perm.expire_at ? new Date(perm.expire_at) > new Date() : false
+    const now = new Date()
+    const perms = get().permissions.filter((p) => p.permission_type === type && p.status === 1)
+    if (!perms.length) return false
+
+    const hasSubscription = perms.some((perm) => perm.payment_mode !== 'per_use' && (!perm.expire_at || new Date(perm.expire_at) > now))
+    if (hasSubscription) return true
+
+    const remaining = perms
+      .filter((perm) => perm.payment_mode === 'per_use')
+      .reduce((sum, perm) => sum + Math.max(0, perm.total_count - perm.used_count), 0)
+
+    return remaining > 0
   },
   getRemainingCount: (type) => {
-    const perm = get().permissions.find((p) => p.permission_type === type)
-    if (!perm || perm.payment_mode !== 'per_use') return 0
-    return Math.max(0, perm.total_count - perm.used_count)
+    const perms = get().permissions.filter((p) => p.permission_type === type && p.payment_mode === 'per_use')
+    return perms.reduce((sum, perm) => sum + Math.max(0, perm.total_count - perm.used_count), 0)
   },
 }))
 

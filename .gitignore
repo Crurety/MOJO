@@ -2,6 +2,10 @@
 .env
 .env.local
 .env.*.local
+frontend/.env.production
+admin/.env.production
+cf-worker/.dev.vars
+cf-worker/.wrangler/
 
 # Dependencies
 node_modules/
@@ -27,11 +31,24 @@ Thumbs.db
 logs
 *.log
 
-# Testing
-coverage/
+# Python cache and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/.pytest_cache/
+backend/tests/.tmp_dbs/
+backend/.tmp_pytest_cache/
+pytest-bootstrap.db
+backend/pytest-bootstrap.db
 .coverage
+coverage/
+htmlcov/
+coverage.xml
 
 # Temporary files
 *.tmp
 *.temp
 .deploy-cache/
+/.cf-pages-admin/
+/.cf-pages-frontend/
+/.gemini/

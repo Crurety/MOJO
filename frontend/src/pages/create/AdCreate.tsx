@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Button, Card, Form, Input, InputNumber, Select, Space, Typography, message } from 'antd'
+import { Button, Form, Input, InputNumber, Select, Space, message } from 'antd'
 import { Link } from 'react-router-dom'
+import { FormMeta, PageHeader, SurfaceCard, TaskReceipt } from '../../components'
+import { useCapabilityAccess } from '../../hooks'
 import { useContent } from '../../hooks/useContent'
 import { useI18n } from '../../i18n'
+import { calculateUsageCost } from '../../utils/usage'
 
-const { Title, Paragraph, Text } = Typography
 const { TextArea } = Input
 
 type AdFormValues = {
@@ -20,11 +22,21 @@ type AdFormValues = {
 const AdCreate = () => {
   const { t } = useI18n()
   const { createTask, loading } = useContent()
+  const { ensureUsageReady, isCheckingAccess, isAutoPurchasing } = useCapabilityAccess('ad')
   const [taskNo, setTaskNo] = useState<string>('')
   const [form] = Form.useForm<AdFormValues>()
   const adType = Form.useWatch('ad_type', form)
 
   const handleSubmit = async (values: AdFormValues) => {
+    const usageReady = await ensureUsageReady(
+      calculateUsageCost({
+        taskType: 'ad',
+      })
+    )
+    if (!usageReady) {
+      return
+    }
+
     const response = await createTask({
       task_type: 'ad',
       parameters: {
@@ -48,14 +60,23 @@ const AdCreate = () => {
     message.success(t('adCreate.toast.submitted'))
   }
 
-  return (
-    <section className="section-shell border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-8">
-      <Title level={2} className="!mb-2 !text-[#f2fbff]">
-        {t('page.adCreate.title')}
-      </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('adCreate.desc')}</Paragraph>
+  if (isCheckingAccess) {
+    return (
+      <div className="space-y-6 text-[#e8f4ff]">
+        <PageHeader eyebrow={t('page.adCreate.title')} title={t('adCreate.form.adType.label')} description={t('adCreate.desc')} />
+        <SurfaceCard>
+          <div className="py-20 text-center text-sm text-[#8fb1cc]">{t('common.loading')}</div>
+        </SurfaceCard>
+      </div>
+    )
+  }
 
-      <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
+  return (
+    <div className="space-y-6 text-[#e8f4ff]">
+      <PageHeader eyebrow={t('page.adCreate.title')} title={t('adCreate.form.adType.label')} description={t('adCreate.desc')} />
+
+      <SurfaceCard>
+        <FormMeta title={t('adCreate.submit')} description={t('adCreate.form.productInfo.placeholder')} />
         <Form<AdFormValues>
           form={form}
           layout="vertical"
@@ -64,27 +85,16 @@ const AdCreate = () => {
         >
           <Space style={{ width: '100%' }} size={16} wrap>
             <Form.Item label={t('adCreate.form.adType.label')} name="ad_type" style={{ minWidth: 220 }}>
-              <Select
-                options={[
-                  { value: 'image', label: t('adCreate.form.adType.image') },
-                  { value: 'video', label: t('adCreate.form.adType.video') },
-                ]}
-              />
+              <Select options={[{ value: 'image', label: t('adCreate.form.adType.image') }, { value: 'video', label: t('adCreate.form.adType.video') }]} />
             </Form.Item>
             <Form.Item label={t('adCreate.form.clarity.label')} name="clarity" style={{ minWidth: 180 }}>
-              <Select
-                options={[
-                  { value: '720p', label: '720p' },
-                  { value: '1080p', label: '1080p' },
-                  { value: '4k', label: '4K' },
-                ]}
-              />
+              <Select options={[{ value: '720p', label: '720p' }, { value: '1080p', label: '1080p' }, { value: '4k', label: '4K' }]} />
             </Form.Item>
-            {adType === 'video' && (
+            {adType === 'video' ? (
               <Form.Item label={t('adCreate.form.duration.label')} name="duration" style={{ minWidth: 180 }}>
                 <InputNumber min={5} max={60} style={{ width: '100%' }} />
               </Form.Item>
-            )}
+            ) : null}
           </Space>
 
           <Form.Item
@@ -107,29 +117,24 @@ const AdCreate = () => {
             <Input placeholder={t('adCreate.form.brandStyle.placeholder')} />
           </Form.Item>
 
-          <Form.Item label={t('adCreate.form.creativePlan.label')} name="creative_plan">
+          <Form.Item label={t('adCreate.form.creativePlan.label')} name="creativePlan">
             <TextArea rows={4} placeholder={t('adCreate.form.creativePlan.placeholder')} />
           </Form.Item>
 
-          <Button type="primary" htmlType="submit" loading={loading}>
+          <Button type="primary" htmlType="submit" loading={loading || isAutoPurchasing}>
             {t('adCreate.submit')}
           </Button>
         </Form>
-      </Card>
+      </SurfaceCard>
 
-      <div className="mt-5 text-sm text-[#9cc0db]">
-        {taskNo ? (
-          <Space size={8} wrap>
-            <Text className="!text-[#d6ebff]">
-              {t('common.taskNoLabel')}：{taskNo}
-            </Text>
-            <Link to="/tasks">{t('common.goToTaskCenter')}</Link>
-          </Space>
-        ) : (
-          t('common.afterSubmitShowTaskNo')
-        )}
-      </div>
-    </section>
+      {taskNo ? (
+        <TaskReceipt
+          label={t('common.taskNoLabel')}
+          value={taskNo}
+          cta={<Link to="/tasks" className="text-sm font-semibold text-[#86d9ff] hover:text-[#d8f6ff]">{t('common.goToTaskCenter')}</Link>}
+        />
+      ) : null}
+    </div>
   )
 }
 

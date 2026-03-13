@@ -1,10 +1,17 @@
-﻿"""Enhanced API tests aligned with current routes."""
+"""Enhanced API tests aligned with current routes."""
 
 from decimal import Decimal
 
 
 class TestContentAPIEnhanced:
-    def test_create_script_with_permission(self, client, auth_headers, test_permission):
+    def test_create_script_with_permission(self, client, auth_headers, test_permission, monkeypatch):
+        from app.api.v1 import content as content_api
+
+        async def fake_generate_from_keywords(**kwargs):
+            return {"script": "Enhanced generated script."}
+
+        monkeypatch.setattr(content_api.script_generator, "generate_from_keywords", fake_generate_from_keywords)
+
         response = client.post(
             "/api/v1/content/scripts",
             json={
@@ -19,6 +26,7 @@ class TestContentAPIEnhanced:
         assert response.status_code == 200
         data = response.json()
         assert data["code"] == 0
+        assert data["data"]["script"]["content"] == "Enhanced generated script."
         assert "script_id" in data["data"]
 
     def test_create_script_without_permission(self, client, auth_headers):
@@ -32,9 +40,28 @@ class TestContentAPIEnhanced:
             headers=auth_headers,
         )
 
-        assert response.status_code in [200, 400]
-        if response.status_code == 200:
-            assert response.json().get("code") != 0
+        assert response.status_code == 400
+
+    def test_create_script_returns_error_when_ai_generation_fails(self, client, auth_headers, test_permission, monkeypatch):
+        from app.api.v1 import content as content_api
+
+        async def fake_generate_from_keywords(**kwargs):
+            raise RuntimeError("provider unavailable")
+
+        monkeypatch.setattr(content_api.script_generator, "generate_from_keywords", fake_generate_from_keywords)
+
+        response = client.post(
+            "/api/v1/content/scripts",
+            json={
+                "title": "test script",
+                "keywords": "tech,innovation",
+                "output_type": "video",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["message"] == "Script generation failed. Check AI configuration and try again."
 
     def test_get_my_scripts(self, client, auth_headers, test_script):
         response = client.get("/api/v1/content/scripts", headers=auth_headers)

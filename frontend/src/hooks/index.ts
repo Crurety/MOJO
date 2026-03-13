@@ -1,4 +1,5 @@
 export { useAuth, usePermissions, useBalance } from './useAuth'
+export { useCapabilityAccess } from './useCapabilityAccess'
 export { useContent, useTaskPolling } from './useContent'
 export {
   usePayment,

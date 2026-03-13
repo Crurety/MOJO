@@ -1,21 +1,25 @@
-﻿"""Shared pytest fixtures."""
+"""Shared pytest fixtures."""
 
 import os
+import shutil
 import sys
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 # Ensure app package is importable.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Disable DB table auto-create side effects and keep tests deterministic.
 os.environ["TESTING"] = "true"
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("DATABASE_URL", "sqlite:///./pytest-bootstrap.db")
 
 # Disable rate-limit decorators in tests.
 from app.core import rate_limit
@@ -28,30 +32,42 @@ from app.main import app
 from app.models import Message, Order, Script, Task, User, UserPermission, Work
 from app.models.base import Base
 
-SQLALCHEMY_DATABASE_URL = "sqlite://"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TEST_DB_ROOT = Path(__file__).resolve().parent / ".tmp_dbs"
+TEST_DB_ROOT.mkdir(exist_ok=True)
 
 
 @pytest.fixture(scope="function")
 def db():
+    db_dir = TEST_DB_ROOT / str(uuid4())
+    db_dir.mkdir()
+    db_path = db_dir / "test.db"
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        connect_args={"check_same_thread": False},
+    )
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+
     Base.metadata.create_all(bind=engine)
-    session = TestingSessionLocal()
+    session = testing_session_local()
+    session.info["session_factory"] = testing_session_local
+    session.info["db_dir"] = db_dir
     try:
         yield session
     finally:
         session.close()
         Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+        shutil.rmtree(db_dir, ignore_errors=True)
 
 
 @pytest.fixture(scope="function")
 def client(db):
     def override_get_db():
-        session = TestingSessionLocal()
+        session = db.info["session_factory"]()
         try:
             yield session
         finally:

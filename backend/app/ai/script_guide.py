@@ -1,13 +1,14 @@
 """脚本生成问答式引导服务"""
 from typing import Dict, Any, List, Optional
-from app.ai.openai_service import openai_service
+
+from app.ai.deepseek_service import deepseek_service
 
 
 class ScriptGuideService:
     """脚本生成问答式引导服务"""
 
     def __init__(self):
-        self.openai = openai_service
+        self.deepseek = deepseek_service
 
     async def start_guide(self, keywords: str, output_type: str) -> Dict[str, Any]:
         """开始问答式引导
@@ -39,7 +40,7 @@ class ScriptGuideService:
     ]
 }}"""
 
-        result = await self.openai.generate(prompt, system_prompt=system_prompt)
+        result = await self.deepseek.generate(prompt, system_prompt=system_prompt)
 
         import json
         try:
@@ -169,7 +170,7 @@ class ScriptGuideService:
 
 请生成一个完整的创作脚本。"""
 
-        result = await self.openai.generate(prompt, system_prompt=system_prompt)
+        result = await self.deepseek.generate(prompt, system_prompt=system_prompt)
 
         # 提取参数
         parameters = self._extract_parameters(answers, output_type)

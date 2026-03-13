@@ -12,10 +12,23 @@ from app.services.system_config_service import SystemConfigService
 
 
 class AIProviderConfigService:
-    PROVIDERS = ("openai", "stability", "runway")
+    PROVIDERS = ("openai", "deepseek", "stability", "runway")
 
     PROVIDER_FIELDS = {
-        "openai": ("api_key", "api_base", "model"),
+        "openai": (
+            "api_key",
+            "api_base",
+            "model",
+            "wire_api",
+            "reasoning_effort",
+            "disable_response_storage",
+            "context_window",
+        ),
+        "deepseek": (
+            "api_key",
+            "api_base",
+            "model",
+        ),
         "stability": ("api_key", "api_base", "engine"),
         "runway": ("api_key", "api_base"),
     }
@@ -25,6 +38,15 @@ class AIProviderConfigService:
             "api_key": "openai_api_key",
             "api_base": "openai_api_base",
             "model": "openai_model",
+            "wire_api": "openai_wire_api",
+            "reasoning_effort": "openai_reasoning_effort",
+            "disable_response_storage": "openai_disable_response_storage",
+            "context_window": "openai_context_window",
+        },
+        "deepseek": {
+            "api_key": "deepseek_api_key",
+            "api_base": "deepseek_api_base",
+            "model": "deepseek_model",
         },
         "stability": {
             "api_key": "stability_api_key",
@@ -41,6 +63,13 @@ class AIProviderConfigService:
         "openai_api_key": settings.OPENAI_API_KEY or "",
         "openai_api_base": settings.OPENAI_API_BASE or "",
         "openai_model": settings.OPENAI_MODEL or "gpt-4",
+        "openai_wire_api": settings.OPENAI_API_WIRE or "",
+        "openai_reasoning_effort": settings.OPENAI_REASONING_EFFORT or "",
+        "openai_disable_response_storage": str(settings.OPENAI_DISABLE_RESPONSE_STORAGE).lower(),
+        "openai_context_window": str(settings.OPENAI_CONTEXT_WINDOW or ""),
+        "deepseek_api_key": settings.DEEPSEEK_API_KEY or "",
+        "deepseek_api_base": settings.DEEPSEEK_API_BASE or "https://api.deepseek.com",
+        "deepseek_model": settings.DEEPSEEK_MODEL or "deepseek-chat",
         "stability_api_key": settings.STABILITY_API_KEY or "",
         "stability_api_base": settings.STABILITY_API_BASE or "https://api.stability.ai/v1",
         "stability_engine": settings.STABILITY_ENGINE or "stable-diffusion-xl-1024-v1-0",
@@ -52,6 +81,13 @@ class AIProviderConfigService:
         "openai_api_key": "OpenAI API key",
         "openai_api_base": "OpenAI API base URL",
         "openai_model": "OpenAI model name",
+        "openai_wire_api": "OpenAI API wire mode",
+        "openai_reasoning_effort": "OpenAI reasoning effort",
+        "openai_disable_response_storage": "OpenAI response storage disabled",
+        "openai_context_window": "OpenAI model context window",
+        "deepseek_api_key": "DeepSeek API key",
+        "deepseek_api_base": "DeepSeek API base URL",
+        "deepseek_model": "DeepSeek model name",
         "stability_api_key": "Stability API key",
         "stability_api_base": "Stability API base URL",
         "stability_engine": "Stability engine",

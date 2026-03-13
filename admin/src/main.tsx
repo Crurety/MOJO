@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AdminLayout from './components/AdminLayout'
 import { I18nProvider } from './i18n'
 import Dashboard from './pages/Dashboard'
@@ -16,19 +16,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const token = localStorage.getItem('admin_token')
 
   if (!token) {
-    return <Navigate to="/admin/login" />
+    return <Navigate to="/login" replace />
   }
 
   return <>{children}</>
+}
+
+const LegacyAdminRedirect: React.FC = () => {
+  const location = useLocation()
+  const targetPath = location.pathname.replace(/^\/admin/, '') || '/'
+  return <Navigate to={`${targetPath}${location.search}${location.hash}`} replace />
 }
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/admin/login" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route
-          path="/admin"
+          path="/"
           element={
             <ProtectedRoute>
               <AdminLayout />
@@ -42,6 +48,8 @@ const App: React.FC = () => {
           <Route path="permissions" element={<PermissionPrices />} />
           <Route path="ai-config" element={<AIProviderConfig />} />
         </Route>
+        <Route path="/admin/*" element={<LegacyAdminRedirect />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   )

@@ -95,6 +95,8 @@ async def process_image_task(task: Task) -> Dict[str, Any]:
         images = result.get("images", [])
 
     image_urls = await _save_base64_images(images, sub_dir="images")
+    if not image_urls:
+        raise ValueError("Image generation returned no images")
     return {"images": image_urls, "count": len(image_urls)}
 
 
@@ -231,21 +233,31 @@ def process_content_task(self, task_id: int):
                 task_service.update_status(task_id, status=1, progress=60)
                 return {"status": "processing", "result": result}
 
-            if result_url:
-                work_service.create(
+            if not result_url:
+                error_message = "Generation returned neither an external task ID nor a result URL."
+                task_service.update_status(task_id, status=3, error_message=error_message)
+                message_service.send_task_failed_notification(
                     user_id=task.user_id,
-                    work_type=task.task_type,
-                    file_url=result_url,
-                    task_id=task.id,
-                    title=f"Generated {task.task_type}",
-                    parameters=task.parameters,
+                    task_no=task.task_no,
+                    task_type=task.task_type,
+                    error_message=error_message,
                 )
+                return {"status": "error", "message": error_message}
+
+            work_service.create(
+                user_id=task.user_id,
+                work_type=task.task_type,
+                file_url=result_url,
+                task_id=task.id,
+                title=f"Generated {task.task_type}",
+                parameters=task.parameters,
+            )
             task_service.update_status(task_id, status=2, progress=100, result_url=result_url)
             message_service.send_task_complete_notification(
                 user_id=task.user_id,
                 task_no=task.task_no,
                 task_type=task.task_type,
-                result_url=result_url or "",
+                result_url=result_url,
             )
             return {"status": "success", "result": result}
 
@@ -255,21 +267,31 @@ def process_content_task(self, task_id: int):
             if ad_type == "image":
                 images = result.get("images", [])
                 result_url = images[0] if images else None
-                if result_url:
-                    work_service.create(
+                if not result_url:
+                    error_message = "Ad image generation returned no images."
+                    task_service.update_status(task_id, status=3, error_message=error_message)
+                    message_service.send_task_failed_notification(
                         user_id=task.user_id,
-                        work_type=task.task_type,
-                        file_url=result_url,
-                        task_id=task.id,
-                        title="Generated ad image",
-                        parameters=task.parameters,
+                        task_no=task.task_no,
+                        task_type=task.task_type,
+                        error_message=error_message,
                     )
+                    return {"status": "error", "message": error_message}
+
+                work_service.create(
+                    user_id=task.user_id,
+                    work_type=task.task_type,
+                    file_url=result_url,
+                    task_id=task.id,
+                    title="Generated ad image",
+                    parameters=task.parameters,
+                )
                 task_service.update_status(task_id, status=2, progress=100, result_url=result_url)
                 message_service.send_task_complete_notification(
                     user_id=task.user_id,
                     task_no=task.task_no,
                     task_type=task.task_type,
-                    result_url=result_url or "",
+                    result_url=result_url,
                 )
                 return {"status": "success", "result": result}
 
@@ -286,21 +308,31 @@ def process_content_task(self, task_id: int):
                 task_service.update_status(task_id, status=1, progress=60)
                 return {"status": "processing", "result": result}
 
-            if result_url:
-                work_service.create(
+            if not result_url:
+                error_message = "Generation returned neither an external task ID nor a result URL."
+                task_service.update_status(task_id, status=3, error_message=error_message)
+                message_service.send_task_failed_notification(
                     user_id=task.user_id,
-                    work_type=task.task_type,
-                    file_url=result_url,
-                    task_id=task.id,
-                    title="Generated ad video",
-                    parameters=task.parameters,
+                    task_no=task.task_no,
+                    task_type=task.task_type,
+                    error_message=error_message,
                 )
+                return {"status": "error", "message": error_message}
+
+            work_service.create(
+                user_id=task.user_id,
+                work_type=task.task_type,
+                file_url=result_url,
+                task_id=task.id,
+                title="Generated ad video",
+                parameters=task.parameters,
+            )
             task_service.update_status(task_id, status=2, progress=100, result_url=result_url)
             message_service.send_task_complete_notification(
                 user_id=task.user_id,
                 task_no=task.task_no,
                 task_type=task.task_type,
-                result_url=result_url or "",
+                result_url=result_url,
             )
             return {"status": "success", "result": result}
 
@@ -356,21 +388,31 @@ def check_video_status():
             status = (status_result.get("status") or "").lower()
             if status in {"completed", "succeeded", "success"}:
                 result_url = status_result.get("result_url")
-                task_service.update_status(task.id, status=2, progress=100, result_url=result_url)
-                if result_url:
-                    work_service.create(
+                if not result_url:
+                    error_message = "Generation completed without a result URL."
+                    task_service.update_status(task.id, status=3, error_message=error_message)
+                    message_service.send_task_failed_notification(
                         user_id=task.user_id,
-                        work_type=task.task_type,
-                        file_url=result_url,
-                        task_id=task.id,
-                        title=f"Generated {task.task_type}",
-                        parameters=task.parameters,
+                        task_no=task.task_no,
+                        task_type=task.task_type,
+                        error_message=error_message,
                     )
+                    continue
+
+                task_service.update_status(task.id, status=2, progress=100, result_url=result_url)
+                work_service.create(
+                    user_id=task.user_id,
+                    work_type=task.task_type,
+                    file_url=result_url,
+                    task_id=task.id,
+                    title=f"Generated {task.task_type}",
+                    parameters=task.parameters,
+                )
                 message_service.send_task_complete_notification(
                     user_id=task.user_id,
                     task_no=task.task_no,
                     task_type=task.task_type,
-                    result_url=result_url or "",
+                    result_url=result_url,
                 )
             elif status in {"failed", "error", "cancelled"}:
                 task_service.update_status(

@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_API_BASE: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4"
+    OPENAI_API_WIRE: Optional[str] = None
+    OPENAI_REASONING_EFFORT: Optional[str] = None
+    OPENAI_DISABLE_RESPONSE_STORAGE: bool = False
+    OPENAI_CONTEXT_WINDOW: Optional[int] = None
+
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_API_BASE: str = "https://api.deepseek.com"
+    DEEPSEEK_MODEL: str = "deepseek-chat"
 
     STABILITY_API_KEY: Optional[str] = None
     STABILITY_API_BASE: str = "https://api.stability.ai/v1"

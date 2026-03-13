@@ -51,6 +51,10 @@ class PermissionService:
         )
 
     def get_permission(self, user_id: int, permission_type: str) -> Optional[UserPermission]:
+        permissions = self._get_permissions_for_type(user_id, permission_type)
+        return permissions[0] if permissions else None
+
+    def _get_permissions_for_type(self, user_id: int, permission_type: str) -> List[UserPermission]:
         return (
             self.db.query(UserPermission)
             .filter(
@@ -58,8 +62,68 @@ class PermissionService:
                 UserPermission.permission_type == permission_type,
                 UserPermission.status == 1,
             )
-            .first()
+            .order_by(UserPermission.created_at.asc(), UserPermission.id.asc())
+            .all()
         )
+
+    @staticmethod
+    def _is_permission_active(permission: UserPermission) -> bool:
+        if permission.status != 1:
+            return False
+        if permission.expire_at and permission.expire_at < datetime.now():
+            return False
+        return True
+
+    def reserve_permission(self, user_id: int, permission_type: str, count: int = 1) -> Optional[list[tuple[int, int]]]:
+        permissions = [
+            permission
+            for permission in self._get_permissions_for_type(user_id, permission_type)
+            if self._is_permission_active(permission)
+        ]
+        if not permissions:
+            return None
+
+        subscription = next((permission for permission in permissions if permission.payment_mode != "per_use"), None)
+        if subscription:
+            return []
+
+        remaining = sum(max(0, permission.total_count - permission.used_count) for permission in permissions)
+        if remaining < count:
+            return None
+
+        allocations: list[tuple[int, int]] = []
+        remaining_to_consume = count
+        for permission in permissions:
+            row_remaining = max(0, permission.total_count - permission.used_count)
+            if row_remaining <= 0:
+                continue
+            consume = min(remaining_to_consume, row_remaining)
+            permission.used_count += consume
+            allocations.append((permission.id, consume))
+            remaining_to_consume -= consume
+            if remaining_to_consume <= 0:
+                break
+
+        self.db.commit()
+        return allocations
+
+    def release_permission_allocations(self, allocations: list[tuple[int, int]]) -> bool:
+        if not allocations:
+            return True
+
+        permission_ids = [permission_id for permission_id, _ in allocations]
+        permission_map = {
+            permission.id: permission
+            for permission in self.db.query(UserPermission).filter(UserPermission.id.in_(permission_ids)).all()
+        }
+        for permission_id, count in allocations:
+            permission = permission_map.get(permission_id)
+            if not permission:
+                continue
+            permission.used_count = max(0, permission.used_count - count)
+
+        self.db.commit()
+        return True
 
     def check_permission(
         self,
@@ -68,38 +132,50 @@ class PermissionService:
         required_count: int = 1,
         with_message: bool = False,
     ):
-        permission = self.get_permission(user_id, permission_type)
-        if not permission:
+        permissions = [
+            permission
+            for permission in self._get_permissions_for_type(user_id, permission_type)
+            if self._is_permission_active(permission)
+        ]
+        if not permissions:
             result = (False, f"Permission {permission_type} is not enabled")
             return result if with_message else result[0]
 
-        if permission.payment_mode == "per_use":
-            remaining = permission.total_count - permission.used_count
-            if remaining < required_count:
-                result = (False, f"Insufficient usage count, remaining {remaining}")
-                return result if with_message else result[0]
-        else:
-            if permission.expire_at and permission.expire_at < datetime.now():
-                result = (False, "Permission has expired")
-                return result if with_message else result[0]
+        if any(permission.payment_mode != "per_use" for permission in permissions):
+            result = (True, "Permission is valid")
+            return result if with_message else result[0]
+
+        remaining = sum(max(0, permission.total_count - permission.used_count) for permission in permissions)
+        if remaining < required_count:
+            result = (False, f"Insufficient usage count, remaining {remaining}")
+            return result if with_message else result[0]
 
         result = (True, "Permission is valid")
         return result if with_message else result[0]
 
     def use_permission(self, user_id: int, permission_type: str, count: int = 1) -> bool:
-        permission = self.get_permission(user_id, permission_type)
-        if not permission:
+        allocations = self.reserve_permission(user_id, permission_type, count)
+        return allocations is not None
+
+    def release_permission(self, user_id: int, permission_type: str, count: int = 1) -> bool:
+        permissions = list(reversed(self._get_permissions_for_type(user_id, permission_type)))
+        if not permissions:
             return False
 
-        if permission.payment_mode == "per_use":
-            has_permission = self.check_permission(
-                user_id=user_id,
-                permission_type=permission_type,
-                required_count=count,
-            )
-            if not has_permission:
-                return False
-            permission.used_count += count
+        if any(permission.payment_mode != "per_use" and self._is_permission_active(permission) for permission in permissions):
+            return True
+
+        remaining_to_release = count
+        for permission in permissions:
+            if permission.payment_mode != "per_use":
+                continue
+            releasable = min(permission.used_count, remaining_to_release)
+            if releasable <= 0:
+                continue
+            permission.used_count = max(0, permission.used_count - releasable)
+            remaining_to_release -= releasable
+            if remaining_to_release <= 0:
+                break
 
         self.db.commit()
         return True

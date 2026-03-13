@@ -41,7 +41,7 @@ class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           localStorage.removeItem('admin_token')
-          window.location.href = '/admin/login'
+          window.location.href = '/login'
         }
         return Promise.reject(error)
       }
@@ -130,6 +130,6 @@ export const adminApi = {
   getAIProviderConfigs: (): Promise<any> =>
     apiClient.get('/admin/ai/providers'),
 
-  updateAIProviderConfig: (provider: 'openai' | 'stability' | 'runway', payload: any): Promise<void> =>
+  updateAIProviderConfig: (provider: 'openai' | 'deepseek' | 'stability' | 'runway', payload: any): Promise<void> =>
     apiClient.put(`/admin/ai/providers/${provider}`, payload),
 }

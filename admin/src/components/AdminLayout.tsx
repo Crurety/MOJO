@@ -28,18 +28,18 @@ const AdminLayout: React.FC = () => {
 
   const navItems: NavItem[] = useMemo(
     () => [
-      { path: '/admin', label: t('layout.nav.dashboard'), icon: <DashboardOutlined /> },
-      { path: '/admin/users', label: t('layout.nav.users'), icon: <TeamOutlined /> },
-      { path: '/admin/orders', label: t('layout.nav.orders'), icon: <OrderedListOutlined /> },
-      { path: '/admin/revenue', label: t('layout.nav.revenue'), icon: <BarChartOutlined /> },
-      { path: '/admin/permissions', label: t('layout.nav.permissions'), icon: <DollarCircleOutlined /> },
-      { path: '/admin/ai-config', label: t('layout.nav.aiConfig'), icon: <ApiOutlined /> },
+      { path: '/', label: t('layout.nav.dashboard'), icon: <DashboardOutlined /> },
+      { path: '/users', label: t('layout.nav.users'), icon: <TeamOutlined /> },
+      { path: '/orders', label: t('layout.nav.orders'), icon: <OrderedListOutlined /> },
+      { path: '/revenue', label: t('layout.nav.revenue'), icon: <BarChartOutlined /> },
+      { path: '/permissions', label: t('layout.nav.permissions'), icon: <DollarCircleOutlined /> },
+      { path: '/ai-config', label: t('layout.nav.aiConfig'), icon: <ApiOutlined /> },
     ],
     [t]
   )
 
   const isActive = (path: string) => {
-    if (path === '/admin') return location.pathname === '/admin'
+    if (path === '/') return location.pathname === '/'
     return location.pathname.startsWith(path)
   }
 
@@ -64,7 +64,7 @@ const AdminLayout: React.FC = () => {
             >
               {mobileOpen ? <CloseOutlined /> : <MenuOutlined />}
             </button>
-            <Link to="/admin" className="admin-brand">
+            <Link to="/" className="admin-brand">
               <span className="admin-brand-mark">MOJO</span>
               <span className="admin-brand-sub">OPERATIONS CONSOLE</span>
             </Link>

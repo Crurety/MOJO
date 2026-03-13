@@ -291,7 +291,7 @@ def get_funnel_analytics(
 
 @router.get("/admin/analytics/trend")
 def get_trend_analytics(
-    metric: str = Query(..., regex="^(users|revenue|tasks)$"),
+    metric: str = Query(..., pattern="^(users|revenue|tasks)$"),
     days: int = Query(30, ge=1, le=365),
     current_admin=Depends(get_current_admin),
     db: Session = Depends(get_db),

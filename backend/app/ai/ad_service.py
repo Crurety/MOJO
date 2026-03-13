@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from app.ai.language_utils import build_language_instruction
 from app.ai.openai_service import openai_service
 from app.ai.runway_service import video_generator
 from app.ai.stability_service import image_generator
@@ -20,18 +21,23 @@ class AdDesignService:
         ad_type: str = "image",
         brand_style: str | None = None,
     ) -> str:
-        prompt = f"""你是一名广告创意总监，请根据以下输入输出可执行创意方案：
+        language_instruction = build_language_instruction(
+            "\n".join(part for part in [product_info, target_audience, brand_style or ""] if part)
+        )
+        prompt = f"""You are an advertising creative director.
+Analyze the following inputs and produce an execution-ready ad creative plan.
+{language_instruction}
 
-产品信息：{product_info}
-目标人群：{target_audience}
-广告类型：{ad_type}
-品牌风格：{brand_style or "未指定"}
+Product information: {product_info}
+Target audience: {target_audience}
+Ad type: {ad_type}
+Brand style: {brand_style or "not specified"}
 
-请输出：
-1. 主诉求与卖点
-2. 画面/镜头设计
-3. 文案建议
-4. 行动召唤建议"""
+Return:
+1. Core message and selling points
+2. Visual or shot direction
+3. Copy suggestions
+4. CTA suggestions"""
         result = await self.openai.generate(prompt)
         return result["content"]
 
@@ -42,13 +48,18 @@ class AdDesignService:
         style: str | None = None,
         materials: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        prompt = f"""请根据以下广告创意方案生成广告图像提示词并输出最终图像：
+        language_instruction = build_language_instruction(creative_plan)
+        prompt = f"""Create a high-converting advertising key visual based on the following creative plan.
+Use the plan to produce a polished image generation prompt.
+{language_instruction}
+
+Creative plan:
 {creative_plan}
 
-要求：
-- 视觉冲击强
-- 信息层级清晰
-- 适合投放渠道"""
+Requirements:
+- strong visual hook
+- clear information hierarchy
+- suitable for paid media placement"""
 
         result = await self.image_gen.generate_single(
             prompt=prompt,
@@ -66,13 +77,18 @@ class AdDesignService:
         style: str | None = None,
         materials: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        prompt = f"""请根据以下广告创意方案生成视频广告：
+        language_instruction = build_language_instruction(creative_plan)
+        prompt = f"""Create a short-form advertising video concept based on the following creative plan.
+Use the plan to produce a concise video generation prompt.
+{language_instruction}
+
+Creative plan:
 {creative_plan}
 
-要求：
-- 节奏紧凑
-- 信息传达清晰
-- 突出行动召唤"""
+Requirements:
+- tight pacing
+- clear message delivery
+- strong call to action"""
 
         result = await self.video_gen.generate(
             prompt=prompt,
@@ -94,13 +110,14 @@ class AdDesignService:
         ad_type: str = "image",
         materials: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
+        if ad_type not in {"image", "video"}:
+            raise ValueError(f"Unsupported ad type: {ad_type}")
+
         creative_plan = await self._generate_creative_plan(script, ad_type, materials)
         if ad_type == "image":
             result = await self.generate_image_ad(creative_plan=creative_plan, materials=materials)
-        elif ad_type == "video":
-            result = await self.generate_video_ad(creative_plan=creative_plan, materials=materials)
         else:
-            raise ValueError(f"Unsupported ad type: {ad_type}")
+            result = await self.generate_video_ad(creative_plan=creative_plan, materials=materials)
 
         return {"ad_type": ad_type, "creative_plan": creative_plan, "result": result}
 
@@ -110,13 +127,14 @@ class AdDesignService:
         ad_type: str = "image",
         requirements: Optional[str] = None,
     ) -> Dict[str, Any]:
+        if ad_type not in {"image", "video"}:
+            raise ValueError(f"Unsupported ad type: {ad_type}")
+
         creative_plan = await self._analyze_materials_and_plan(materials, ad_type, requirements)
         if ad_type == "image":
             result = await self.generate_image_ad(creative_plan=creative_plan, materials=materials)
-        elif ad_type == "video":
-            result = await self.generate_video_ad(creative_plan=creative_plan, materials=materials)
         else:
-            raise ValueError(f"Unsupported ad type: {ad_type}")
+            result = await self.generate_video_ad(creative_plan=creative_plan, materials=materials)
 
         return {
             "ad_type": ad_type,
@@ -132,16 +150,18 @@ class AdDesignService:
         materials: Optional[List[str]] = None,
     ) -> str:
         script_content = script.get("script", str(script))
-        materials_info = f"可用素材数量: {len(materials)}" if materials else "无预设素材"
-        prompt = f"""请根据以下内容生成广告创意方案：
+        materials_info = f"Available material count: {len(materials)}" if materials else "No predefined materials"
+        language_instruction = build_language_instruction(script_content)
+        prompt = f"""Create an advertising creative plan based on the following input.
+{language_instruction}
 
-脚本内容：
+Script content:
 {script_content}
 
-广告类型：{ad_type}
+Ad type: {ad_type}
 {materials_info}
 
-请输出可直接用于设计/生成的创意方案。"""
+Return a creative plan that can be used directly for design or generation."""
         result = await self.openai.generate(prompt)
         return result["content"]
 
@@ -151,24 +171,36 @@ class AdDesignService:
         ad_type: str,
         requirements: Optional[str] = None,
     ) -> str:
-        prompt = f"""请为以下素材生成广告创意方案：
+        language_instruction = build_language_instruction(
+            "\n".join(part for part in ["\n".join(materials), requirements or ""] if part)
+        )
+        prompt = f"""Create an advertising creative plan from the following materials.
+{language_instruction}
 
-素材数量：{len(materials)}
-广告类型：{ad_type}
-额外要求：{requirements or "无"}
+Material count: {len(materials)}
+Ad type: {ad_type}
+Additional requirements: {requirements or "none"}
 
-请输出素材组合建议、视觉布局、文案与行动召唤。"""
+Return:
+- recommended material combination
+- visual direction
+- copy angle
+- CTA suggestion"""
         result = await self.openai.generate(prompt)
         return result["content"]
 
     async def optimize_ad(self, original_ad: Dict[str, Any], feedback: str) -> Dict[str, Any]:
         original_plan = original_ad.get("creative_plan", "")
-        prompt = f"""请根据反馈优化广告方案：
+        language_instruction = build_language_instruction(
+            "\n".join(part for part in [original_plan, feedback] if part)
+        )
+        prompt = f"""Optimize the following advertising plan based on feedback.
+{language_instruction}
 
-原始方案：
+Original plan:
 {original_plan}
 
-反馈：
+Feedback:
 {feedback}
 """
         result = await self.openai.generate(prompt)
@@ -188,4 +220,3 @@ class AdDesignService:
 
 
 ad_design_service = AdDesignService()
-

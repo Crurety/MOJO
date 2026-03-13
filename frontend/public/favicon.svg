@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(64 62) rotate(90) scale(56)">
+      <stop offset="0" stop-color="#0E2033" />
+      <stop offset="0.65" stop-color="#08131F" />
+      <stop offset="1" stop-color="#03070D" />
+    </radialGradient>
+    <linearGradient id="ring" x1="21" y1="18" x2="108" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5BD7FF" />
+      <stop offset="1" stop-color="#7AB8FF" />
+    </linearGradient>
+    <linearGradient id="mark" x1="38" y1="36" x2="90" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#D8F4FF" />
+    </linearGradient>
+    <filter id="ringGlow" x="10" y="10" width="108" height="108" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="markGlow" x="30" y="28" width="68" height="62" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="1.75" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="#02050A" />
+  <circle cx="64" cy="64" r="50" fill="url(#bg)" />
+  <circle cx="64" cy="64" r="51" stroke="url(#ring)" stroke-width="4" filter="url(#ringGlow)" />
+  <path
+    fill="url(#mark)"
+    fill-rule="evenodd"
+    d="M38 36L58 48V82L38 70V36ZM46 49L52 53V65L46 61V49ZM90 36L70 48V82L90 70V36ZM82 49L76 53V65L82 61V49Z"
+    clip-rule="evenodd"
+    filter="url(#markGlow)"
+  />
+</svg>

@@ -2,14 +2,7 @@ import { useCallback, useState } from 'react'
 import { contentApi } from '../api'
 import { translateStatic } from '../i18n'
 import { useTaskStore } from '../store'
-
-const resolveApiErrorMessage = (error: any, fallback: string) => {
-  const detail = error?.response?.data?.detail
-  if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg as string
-  if (typeof detail === 'string') return detail
-  if (typeof error?.response?.data?.message === 'string') return error.response.data.message
-  return fallback
-}
+import { resolveApiErrorMessage } from '../utils/apiError'
 
 export const useContent = () => {
   const { tasks, setTasks, addTask, currentTask, setCurrentTask } = useTaskStore()

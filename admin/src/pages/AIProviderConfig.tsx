@@ -1,9 +1,9 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
-import { ApiOutlined, RocketOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { ApiOutlined, RobotOutlined, RocketOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { adminApi } from '../api'
 import { useI18n } from '../i18n'
 
-type ProviderKey = 'openai' | 'stability' | 'runway'
+type ProviderKey = 'openai' | 'deepseek' | 'stability' | 'runway'
 
 type ProviderConfig = {
   enabled: boolean
@@ -11,6 +11,10 @@ type ProviderConfig = {
   api_base: string
   model?: string
   engine?: string
+  wire_api?: string
+  reasoning_effort?: string
+  disable_response_storage?: string
+  context_window?: string
 }
 
 type ProviderDraft = {
@@ -19,10 +23,15 @@ type ProviderDraft = {
   api_base: string
   model?: string
   engine?: string
+  wire_api?: string
+  reasoning_effort?: string
+  disable_response_storage?: string
+  context_window?: string
 }
 
 const providerTitles: Record<ProviderKey, string> = {
   openai: 'OpenAI',
+  deepseek: 'DeepSeek',
   stability: 'Stability',
   runway: 'Runway',
 }
@@ -31,6 +40,10 @@ const providerDescriptions: Record<ProviderKey, { zh: string; en: string }> = {
   openai: {
     zh: '配置文本与多模态模型能力。',
     en: 'Configure text and multimodal model capabilities.',
+  },
+  deepseek: {
+    zh: '配置创作脚本生成使用的 DeepSeek 模型。',
+    en: 'Configure the DeepSeek model used for creative script generation.',
   },
   stability: {
     zh: '配置图像生成引擎和服务地址。',
@@ -44,17 +57,19 @@ const providerDescriptions: Record<ProviderKey, { zh: string; en: string }> = {
 
 const providerIcons: Record<ProviderKey, React.ReactNode> = {
   openai: <ApiOutlined />,
+  deepseek: <RobotOutlined />,
   stability: <ThunderboltOutlined />,
   runway: <RocketOutlined />,
 }
 
-const providerList: ProviderKey[] = ['openai', 'stability', 'runway']
+const providerList: ProviderKey[] = ['openai', 'deepseek', 'stability', 'runway']
 
 const AIProviderConfig: React.FC = () => {
   const { t, language } = useI18n()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<Record<ProviderKey, boolean>>({
     openai: false,
+    deepseek: false,
     stability: false,
     runway: false,
   })
@@ -74,6 +89,16 @@ const AIProviderConfig: React.FC = () => {
           api_key_masked: data.openai.api_key || '',
           api_base: data.openai.api_base || '',
           model: data.openai.model || '',
+          wire_api: data.openai.wire_api || '',
+          reasoning_effort: data.openai.reasoning_effort || '',
+          disable_response_storage: data.openai.disable_response_storage || '',
+          context_window: data.openai.context_window || '',
+        },
+        deepseek: {
+          api_key: '',
+          api_key_masked: data.deepseek.api_key || '',
+          api_base: data.deepseek.api_base || '',
+          model: data.deepseek.model || '',
         },
         stability: {
           api_key: '',
@@ -128,10 +153,31 @@ const AIProviderConfig: React.FC = () => {
 
     const keyChanged = Boolean(draft.api_key.trim())
     const baseChanged = (draft.api_base || '') !== (config.api_base || '')
-    const modelChanged = provider === 'openai' ? (draft.model || '') !== (config.model || '') : false
+    const modelChanged =
+      provider === 'openai' || provider === 'deepseek'
+        ? (draft.model || '') !== (config.model || '')
+        : false
+    const wireChanged = provider === 'openai' ? (draft.wire_api || '') !== (config.wire_api || '') : false
+    const reasoningChanged =
+      provider === 'openai' ? (draft.reasoning_effort || '') !== (config.reasoning_effort || '') : false
+    const storageChanged =
+      provider === 'openai'
+        ? (draft.disable_response_storage || '') !== (config.disable_response_storage || '')
+        : false
+    const contextChanged =
+      provider === 'openai' ? (draft.context_window || '') !== (config.context_window || '') : false
     const engineChanged = provider === 'stability' ? (draft.engine || '') !== (config.engine || '') : false
 
-    return keyChanged || baseChanged || modelChanged || engineChanged
+    return (
+      keyChanged ||
+      baseChanged ||
+      modelChanged ||
+      wireChanged ||
+      reasoningChanged ||
+      storageChanged ||
+      contextChanged ||
+      engineChanged
+    )
   }
 
   const summary = useMemo(() => {
@@ -166,6 +212,12 @@ const AIProviderConfig: React.FC = () => {
     }
 
     if (draft.model !== undefined) payload.model = draft.model || ''
+    if (draft.wire_api !== undefined) payload.wire_api = draft.wire_api || ''
+    if (draft.reasoning_effort !== undefined) payload.reasoning_effort = draft.reasoning_effort || ''
+    if (draft.disable_response_storage !== undefined) {
+      payload.disable_response_storage = draft.disable_response_storage || ''
+    }
+    if (draft.context_window !== undefined) payload.context_window = draft.context_window || ''
     if (draft.engine !== undefined) payload.engine = draft.engine || ''
     if (draft.api_key.trim()) payload.api_key = draft.api_key.trim()
 
@@ -268,13 +320,68 @@ const AIProviderConfig: React.FC = () => {
             />
           </div>
 
-          {provider === 'openai' && (
+          {(provider === 'openai' || provider === 'deepseek') && (
             <div className="admin-ai-field">
               <label className="admin-label">Model</label>
               <input
                 type="text"
                 value={draft.model || ''}
                 onChange={(e) => updateDraft(provider, 'model', e.target.value)}
+                className="admin-input w-full"
+              />
+            </div>
+          )}
+
+          {provider === 'openai' && (
+            <div className="admin-ai-field">
+              <label className="admin-label">Wire API</label>
+              <select
+                value={draft.wire_api || ''}
+                onChange={(e) => updateDraft(provider, 'wire_api', e.target.value)}
+                className="admin-select w-full"
+              >
+                <option value="">{language === 'zh' ? '跟随默认' : 'Use default'}</option>
+                <option value="responses">responses</option>
+                <option value="chat_completions">chat_completions</option>
+              </select>
+            </div>
+          )}
+
+          {provider === 'openai' && (
+            <div className="admin-ai-field">
+              <label className="admin-label">Reasoning Effort</label>
+              <input
+                type="text"
+                value={draft.reasoning_effort || ''}
+                onChange={(e) => updateDraft(provider, 'reasoning_effort', e.target.value)}
+                placeholder={language === 'zh' ? '例如: low / medium / high' : 'e.g. low / medium / high'}
+                className="admin-input w-full"
+              />
+            </div>
+          )}
+
+          {provider === 'openai' && (
+            <div className="admin-ai-field">
+              <label className="admin-label">Response Storage</label>
+              <select
+                value={draft.disable_response_storage || ''}
+                onChange={(e) => updateDraft(provider, 'disable_response_storage', e.target.value)}
+                className="admin-select w-full"
+              >
+                <option value="">{language === 'zh' ? '跟随默认' : 'Use default'}</option>
+                <option value="true">{language === 'zh' ? '禁用' : 'Disable'}</option>
+                <option value="false">{language === 'zh' ? '启用' : 'Enable'}</option>
+              </select>
+            </div>
+          )}
+
+          {provider === 'openai' && (
+            <div className="admin-ai-field">
+              <label className="admin-label">Context Window</label>
+              <input
+                type="number"
+                value={draft.context_window || ''}
+                onChange={(e) => updateDraft(provider, 'context_window', e.target.value)}
                 className="admin-input w-full"
               />
             </div>

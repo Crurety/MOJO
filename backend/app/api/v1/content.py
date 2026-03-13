@@ -60,10 +60,13 @@ async def create_script(
                 style=(script_in.parameters or {}).get("style"),
                 scene_count=(script_in.parameters or {}).get("scene_count", 1),
             )
-            generated_content = generated.get("script", "")
+            generated_content = (generated.get("script") or "").strip()
         except Exception as exc:
-            # Fallback for offline/test environments or temporary provider failures.
-            logger.warning("Script generation fallback enabled: %s", exc)
+            logger.warning("Script generation failed: %s", exc)
+            raise BadRequestException(detail="Script generation failed. Check AI configuration and try again.") from exc
+
+        if not generated_content:
+            raise BadRequestException(detail="Script generation failed: empty content returned.")
 
     script = script_service.create(
         current_user.id,
@@ -155,15 +158,6 @@ def create_task(
     permission_service = PermissionService(db)
     task_service = TaskService(db)
 
-    has_permission, message = permission_service.check_permission(
-        current_user.id,
-        task_in.task_type,
-        required_count=1,
-        with_message=True,
-    )
-    if not has_permission:
-        raise BadRequestException(detail=message)
-
     clarity = (
         task_in.parameters.get("clarity", "1080p") if task_in.parameters else "1080p"
     )
@@ -177,6 +171,15 @@ def create_task(
         count=count,
     )
 
+    has_permission, message = permission_service.check_permission(
+        current_user.id,
+        task_in.task_type,
+        required_count=cost_amount,
+        with_message=True,
+    )
+    if not has_permission:
+        raise BadRequestException(detail=message)
+
     task = task_service.create(
         user_id=current_user.id,
         task_type=task_in.task_type,
@@ -184,14 +187,27 @@ def create_task(
         cost_amount=cost_amount,
     )
 
-    if not permission_service.use_permission(current_user.id, task_in.task_type, cost_amount):
-        raise BadRequestException(detail="使用次数不足")
-
+    permission_consumed = False
+    permission_allocations: list[tuple[int, int]] = []
     try:
+        reserved = permission_service.reserve_permission(current_user.id, task_in.task_type, cost_amount)
+        if reserved is None:
+            raise BadRequestException(detail="Insufficient usage count.")
+        permission_allocations = reserved
+        permission_consumed = True
+
         process_content_task.delay(task.id)
-    except Exception:
-        # Keep API responsive in environments without running broker.
-        pass
+    except Exception as exc:
+        if permission_consumed:
+            permission_service.release_permission_allocations(permission_allocations)
+        db.delete(task)
+        db.commit()
+
+        if isinstance(exc, BadRequestException):
+            raise
+
+        logger.warning("Task dispatch failed: %s", exc)
+        raise BadRequestException(detail="Task submission failed. Please try again later.") from exc
 
     return BaseResponse(
         message="Task created",

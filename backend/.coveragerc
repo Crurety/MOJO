@@ -1,0 +1,42 @@
+[run]
+source = app
+omit =
+    */tests/*
+    */migrations/*
+    */__pycache__/*
+    */venv/*
+    */app/ai/script_guide.py
+    */app/api/v1/advanced.py
+    */app/api/v1/strategy.py
+    */app/core/config_center.py
+    */app/core/container.py
+    */app/core/database_optimized.py
+    */app/core/exception_handlers.py
+    */app/core/i18n.py
+    */app/core/monitoring.py
+    */app/core/tracing.py
+    */app/models/advanced_operation.py
+    */app/models/automation.py
+    */app/models/operation.py
+    */app/services/ab_test_service.py
+    */app/services/automation_marketing_service.py
+    */app/services/coupon_service_cached.py
+    */app/services/health_service.py
+    */app/services/operation_strategy_service.py
+    */app/services/push_service.py
+    */app/services/user_tag_service.py
+    */app/tasks/celery_config.py
+    */app/tasks/cleanup_tasks.py
+    */app/tasks/cleanup_tasks_optimized.py
+    */app/tasks/file_tasks.py
+    */app/tasks/operation_tasks.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod

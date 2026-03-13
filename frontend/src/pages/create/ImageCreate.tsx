@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Button, Card, Form, Input, InputNumber, Select, Space, Typography, message } from 'antd'
+import { Button, Form, Input, InputNumber, Select, Space, message } from 'antd'
 import { Link } from 'react-router-dom'
+import { FormMeta, PageHeader, SurfaceCard, TaskReceipt } from '../../components'
+import { useCapabilityAccess } from '../../hooks'
 import { useContent } from '../../hooks/useContent'
 import { useI18n } from '../../i18n'
+import { calculateUsageCost } from '../../utils/usage'
 
-const { Title, Paragraph, Text } = Typography
 const { TextArea } = Input
 
 type ImageFormValues = {
@@ -17,9 +19,21 @@ type ImageFormValues = {
 const ImageCreate = () => {
   const { t } = useI18n()
   const { createTask, loading } = useContent()
+  const { ensureUsageReady, isCheckingAccess, isAutoPurchasing } = useCapabilityAccess('image')
   const [taskNo, setTaskNo] = useState<string>('')
 
   const handleSubmit = async (values: ImageFormValues) => {
+    const usageReady = await ensureUsageReady(
+      calculateUsageCost({
+        taskType: 'image',
+        clarity: values.clarity,
+        count: values.count,
+      })
+    )
+    if (!usageReady) {
+      return
+    }
+
     const response = await createTask({
       task_type: 'image',
       parameters: {
@@ -40,36 +54,35 @@ const ImageCreate = () => {
     message.success(t('imageCreate.toast.submitted'))
   }
 
-  return (
-    <section className="section-shell border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-8">
-      <Title level={2} className="!mb-2 !text-[#f2fbff]">
-        {t('page.imageCreate.title')}
-      </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('imageCreate.desc')}</Paragraph>
+  if (isCheckingAccess) {
+    return (
+      <div className="space-y-6 text-[#e8f4ff]">
+        <PageHeader eyebrow={t('page.imageCreate.title')} title={t('imageCreate.form.prompt.label')} description={t('imageCreate.desc')} />
+        <SurfaceCard>
+          <div className="py-20 text-center text-sm text-[#8fb1cc]">{t('common.loading')}</div>
+        </SurfaceCard>
+      </div>
+    )
+  }
 
-      <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
-        <Form<ImageFormValues>
-          layout="vertical"
-          initialValues={{ clarity: '1080p', count: 1 }}
-          onFinish={handleSubmit}
-        >
+  return (
+    <div className="space-y-6 text-[#e8f4ff]">
+      <PageHeader eyebrow={t('page.imageCreate.title')} title={t('imageCreate.form.prompt.label')} description={t('imageCreate.desc')} />
+
+      <SurfaceCard>
+        <FormMeta title={t('imageCreate.submit')} description={t('imageCreate.form.prompt.placeholder')} />
+        <Form<ImageFormValues> layout="vertical" initialValues={{ clarity: '1080p', count: 1 }} onFinish={handleSubmit}>
           <Form.Item
             label={t('imageCreate.form.prompt.label')}
             name="prompt"
             rules={[{ required: true, message: t('imageCreate.form.prompt.required') }]}
           >
-            <TextArea rows={4} placeholder={t('imageCreate.form.prompt.placeholder')} />
+            <TextArea rows={5} placeholder={t('imageCreate.form.prompt.placeholder')} />
           </Form.Item>
 
           <Space style={{ width: '100%' }} size={16} wrap>
             <Form.Item label={t('imageCreate.form.clarity.label')} name="clarity" style={{ minWidth: 180 }}>
-              <Select
-                options={[
-                  { value: '720p', label: '720p' },
-                  { value: '1080p', label: '1080p' },
-                  { value: '4k', label: '4K' },
-                ]}
-              />
+              <Select options={[{ value: '720p', label: '720p' }, { value: '1080p', label: '1080p' }, { value: '4k', label: '4K' }]} />
             </Form.Item>
             <Form.Item label={t('imageCreate.form.style.label')} name="style" style={{ minWidth: 220 }}>
               <Input placeholder={t('imageCreate.form.style.placeholder')} />
@@ -79,25 +92,20 @@ const ImageCreate = () => {
             </Form.Item>
           </Space>
 
-          <Button type="primary" htmlType="submit" loading={loading}>
+          <Button type="primary" htmlType="submit" loading={loading || isAutoPurchasing}>
             {t('imageCreate.submit')}
           </Button>
         </Form>
-      </Card>
+      </SurfaceCard>
 
-      <div className="mt-5 text-sm text-[#9cc0db]">
-        {taskNo ? (
-          <Space size={8} wrap>
-            <Text className="!text-[#d6ebff]">
-              {t('common.taskNoLabel')}：{taskNo}
-            </Text>
-            <Link to="/tasks">{t('common.goToTaskCenter')}</Link>
-          </Space>
-        ) : (
-          t('common.afterSubmitShowTaskNo')
-        )}
-      </div>
-    </section>
+      {taskNo ? (
+        <TaskReceipt
+          label={t('common.taskNoLabel')}
+          value={taskNo}
+          cta={<Link to="/tasks" className="text-sm font-semibold text-[#86d9ff] hover:text-[#d8f6ff]">{t('common.goToTaskCenter')}</Link>}
+        />
+      ) : null}
+    </div>
   )
 }
 

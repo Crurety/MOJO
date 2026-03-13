@@ -18,8 +18,8 @@ const Login: React.FC = () => {
   const highlights = useMemo(
     () =>
       language === 'zh'
-        ? ['统一管理用户与订单', '实时查看收入与关键指标', '集中配置 OpenAI / Stability / Runway']
-        : ['Manage users and orders from one console', 'Track revenue and KPI movement in real time', 'Configure OpenAI / Stability / Runway centrally'],
+        ? ['统一管理用户与订单', '实时查看收入与关键指标', '集中配置 OpenAI / DeepSeek / Stability / Runway']
+        : ['Manage users and orders from one console', 'Track revenue and KPI movement in real time', 'Configure OpenAI / DeepSeek / Stability / Runway centrally'],
     [language]
   )
 
@@ -32,7 +32,7 @@ const Login: React.FC = () => {
       const response = await authApi.login(formData)
       if (response.user && response.token) {
         setAuth(response.user, response.token.access_token)
-        navigate('/admin')
+        navigate('/')
       } else {
         setError(t('login.failed'))
       }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { paymentApi } from '../api'
 import { translateStatic } from '../i18n'
+import { resolveApiErrorMessage } from '../utils/apiError'
 
 export type PermissionType = 'script' | 'image' | 'video' | 'ad'
 export type PaymentMode = 'per_use' | 'monthly' | 'yearly'
@@ -20,7 +21,7 @@ export const usePayment = () => {
       const response = await paymentApi.createOrder(data)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.createOrderFailed') }
+      return { success: false, message: resolveApiErrorMessage(error, translateStatic('hook.payment.createOrderFailed')) }
     } finally {
       setLoading(false)
     }
@@ -32,7 +33,7 @@ export const usePayment = () => {
       const response = await paymentApi.createBalanceOrder(amount, paymentMethod)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.createOrderFailed') }
+      return { success: false, message: resolveApiErrorMessage(error, translateStatic('hook.payment.createOrderFailed')) }
     } finally {
       setLoading(false)
     }
@@ -44,7 +45,7 @@ export const usePayment = () => {
       const response = await paymentApi.getOrders(skip, limit, status)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.fetchOrderFailed') }
+      return { success: false, message: resolveApiErrorMessage(error, translateStatic('hook.payment.fetchOrderFailed')) }
     } finally {
       setLoading(false)
     }
@@ -58,7 +59,7 @@ export const usePayment = () => {
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || translateStatic('hook.payment.fetchOrderDetailFailed'),
+        message: resolveApiErrorMessage(error, translateStatic('hook.payment.fetchOrderDetailFailed')),
       }
     } finally {
       setLoading(false)
@@ -71,7 +72,7 @@ export const usePayment = () => {
       const response = await paymentApi.payOrder(orderNo)
       return { success: true, data: response }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || translateStatic('hook.payment.payFailed') }
+      return { success: false, message: resolveApiErrorMessage(error, translateStatic('hook.payment.payFailed')) }
     } finally {
       setLoading(false)
     }

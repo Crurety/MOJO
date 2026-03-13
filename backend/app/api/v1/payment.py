@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
@@ -241,7 +241,7 @@ async def pay_order(
 
         current_user.balance = Decimal(current_user.balance) - Decimal(order.amount)
         order.status = 1
-        order.paid_at = datetime.utcnow()
+        order.paid_at = datetime.now(UTC)
         db.commit()
         db.refresh(order)
 

@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Button, Card, Form, Input, InputNumber, Select, Space, Typography, message } from 'antd'
+import { Button, Form, Input, InputNumber, Select, Space, message } from 'antd'
+import { Link } from 'react-router-dom'
+import { FormMeta, PageHeader, ResultPanel, SurfaceCard } from '../../components'
+import { useCapabilityAccess } from '../../hooks'
 import { useContent } from '../../hooks/useContent'
 import { useI18n } from '../../i18n'
 
-const { Title, Paragraph, Text } = Typography
 const { TextArea } = Input
 
 type ScriptFormValues = {
@@ -17,10 +19,16 @@ type ScriptFormValues = {
 const ScriptCreate = () => {
   const { t } = useI18n()
   const { createScript, loading } = useContent()
+  const { ensureUsageReady, isCheckingAccess, isAutoPurchasing } = useCapabilityAccess('script')
   const [generatedScript, setGeneratedScript] = useState<string>('')
   const [form] = Form.useForm<ScriptFormValues>()
 
   const handleSubmit = async (values: ScriptFormValues) => {
+    const usageReady = await ensureUsageReady(1)
+    if (!usageReady) {
+      return
+    }
+
     const response = await createScript({
       title: values.title?.trim() || undefined,
       keywords: values.keywords.trim(),
@@ -46,65 +54,88 @@ const ScriptCreate = () => {
     message.success(t('scriptCreate.toast.created'))
   }
 
+  if (isCheckingAccess) {
+    return (
+      <div className="space-y-6 text-[#e8f4ff]">
+        <PageHeader
+          eyebrow={t('page.scriptCreate.title')}
+          title={t('scriptCreate.form.title.label')}
+          description={t('scriptCreate.desc')}
+        />
+        <SurfaceCard>
+          <div className="py-20 text-center text-sm text-[#8fb1cc]">{t('common.loading')}</div>
+        </SurfaceCard>
+      </div>
+    )
+  }
+
   return (
-    <section className="section-shell border border-[rgba(132,179,219,0.3)] px-6 py-8 sm:px-8">
-      <Title level={2} className="!mb-2 !text-[#f2fbff]">
-        {t('page.scriptCreate.title')}
-      </Title>
-      <Paragraph className="!mb-6 !text-[#96b5cf]">{t('scriptCreate.desc')}</Paragraph>
+    <div className="space-y-6 text-[#e8f4ff]">
+      <PageHeader
+        eyebrow={t('page.scriptCreate.title')}
+        title={t('scriptCreate.form.title.label')}
+        description={t('scriptCreate.desc')}
+        actions={
+          <Link to="/tasks" className="border border-[rgba(132,179,219,0.28)] px-4 py-2 text-sm font-semibold text-[#d5ecff] transition hover:border-[rgba(151,232,255,0.5)] hover:bg-[rgba(8,28,46,0.82)]">
+            {t('common.goToTaskCenter')}
+          </Link>
+        }
+      />
 
-      <Card className="!mb-6 !border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
-        <Form<ScriptFormValues>
-          form={form}
-          layout="vertical"
-          initialValues={{ output_type: 'image_set', scene_count: 3 }}
-          onFinish={handleSubmit}
-        >
-          <Form.Item label={t('scriptCreate.form.title.label')} name="title">
-            <Input placeholder={t('scriptCreate.form.title.placeholder')} />
-          </Form.Item>
-
-          <Form.Item
-            label={t('scriptCreate.form.keywords.label')}
-            name="keywords"
-            rules={[{ required: true, message: t('scriptCreate.form.keywords.required') }]}
+      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <SurfaceCard>
+          <FormMeta title={t('scriptCreate.submit')} description={t('scriptCreate.form.keywords.placeholder')} />
+          <Form<ScriptFormValues>
+            form={form}
+            layout="vertical"
+            initialValues={{ output_type: 'image_set', scene_count: 3 }}
+            onFinish={handleSubmit}
           >
-            <TextArea rows={4} placeholder={t('scriptCreate.form.keywords.placeholder')} />
-          </Form.Item>
-
-          <Space style={{ width: '100%' }} size={16} wrap>
-            <Form.Item label={t('scriptCreate.form.outputType.label')} name="output_type" style={{ minWidth: 220 }}>
-              <Select
-                options={[
-                  { value: 'image_set', label: t('scriptCreate.form.outputType.imageSet') },
-                  { value: 'single_image', label: t('scriptCreate.form.outputType.singleImage') },
-                  { value: 'video', label: t('scriptCreate.form.outputType.video') },
-                ]}
-              />
+            <Form.Item label={t('scriptCreate.form.title.label')} name="title">
+              <Input placeholder={t('scriptCreate.form.title.placeholder')} />
             </Form.Item>
 
-            <Form.Item label={t('scriptCreate.form.style.label')} name="style" style={{ minWidth: 220 }}>
-              <Input placeholder={t('scriptCreate.form.style.placeholder')} />
+            <Form.Item
+              label={t('scriptCreate.form.keywords.label')}
+              name="keywords"
+              rules={[{ required: true, message: t('scriptCreate.form.keywords.required') }]}
+            >
+              <TextArea rows={5} placeholder={t('scriptCreate.form.keywords.placeholder')} />
             </Form.Item>
 
-            <Form.Item label={t('scriptCreate.form.sceneCount.label')} name="scene_count" style={{ minWidth: 180 }}>
-              <InputNumber min={1} max={12} style={{ width: '100%' }} />
-            </Form.Item>
-          </Space>
+            <Space style={{ width: '100%' }} size={16} wrap>
+              <Form.Item label={t('scriptCreate.form.outputType.label')} name="output_type" style={{ minWidth: 220 }}>
+                <Select
+                  options={[
+                    { value: 'image_set', label: t('scriptCreate.form.outputType.imageSet') },
+                    { value: 'single_image', label: t('scriptCreate.form.outputType.singleImage') },
+                    { value: 'video', label: t('scriptCreate.form.outputType.video') },
+                  ]}
+                />
+              </Form.Item>
 
-          <Button type="primary" htmlType="submit" loading={loading}>
-            {t('scriptCreate.submit')}
-          </Button>
-        </Form>
-      </Card>
+              <Form.Item label={t('scriptCreate.form.style.label')} name="style" style={{ minWidth: 220 }}>
+                <Input placeholder={t('scriptCreate.form.style.placeholder')} />
+              </Form.Item>
 
-      <Card className="!border-[rgba(132,179,219,0.25)] !bg-[rgba(6,20,36,0.75)]">
-        <Text className="!text-[#cfe8ff]">{t('scriptCreate.result.title')}</Text>
-        <div className="mt-3 whitespace-pre-wrap rounded border border-[rgba(132,179,219,0.2)] bg-[rgba(2,10,20,0.75)] p-4 text-[#deefff]">
-          {generatedScript || t('scriptCreate.result.empty')}
-        </div>
-      </Card>
-    </section>
+              <Form.Item label={t('scriptCreate.form.sceneCount.label')} name="scene_count" style={{ minWidth: 180 }}>
+                <InputNumber min={1} max={12} style={{ width: '100%' }} />
+              </Form.Item>
+            </Space>
+
+            <Button type="primary" htmlType="submit" loading={loading || isAutoPurchasing}>
+              {t('scriptCreate.submit')}
+            </Button>
+          </Form>
+        </SurfaceCard>
+
+        <ResultPanel title={t('scriptCreate.result.title')} description={t('home.workflow.step2.desc')}>
+          <div className="min-h-[360px] whitespace-pre-wrap text-sm leading-7">
+            {generatedScript || t('scriptCreate.result.empty')}
+          </div>
+        </ResultPanel>
+      </div>
+    </div>
   )
 }
 

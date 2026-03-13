@@ -228,3 +228,13 @@ export const Badge: React.FC<BadgeProps> = ({ variant = 'default', children }) =
 }
 
 export { default as LanguageSwitcher } from './LanguageSwitcher'
+export { default as AuthShell } from './AuthShell'
+export {
+  EmptyState,
+  FormMeta,
+  PageHeader,
+  ResultPanel,
+  StatStrip,
+  SurfaceCard,
+  TaskReceipt,
+} from './PageScaffold'
