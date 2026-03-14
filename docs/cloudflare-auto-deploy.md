@@ -21,6 +21,13 @@ The shared deployment script is:
 
 - `scripts/deploy/cloudflare-deploy.sh`
 
+The deployment workflow targets a self-hosted Windows runner with these labels:
+
+- `self-hosted`
+- `Windows`
+- `X64`
+- `mojo-cloudflare`
+
 ## Required GitHub Secrets
 
 Add this repository secret before enabling automatic deployment:
@@ -49,6 +56,7 @@ Optional overrides:
 - Push deployments do not apply the D1 schema automatically.
 - Manual `workflow_dispatch` runs can opt into D1 schema application when needed.
 - Worker secrets such as API keys must already exist in Cloudflare. This workflow does not create or rotate Worker secrets.
+- The current self-hosted runner is configured on a Windows machine and auto-starts at user login.
 
 ## Manual Run
 

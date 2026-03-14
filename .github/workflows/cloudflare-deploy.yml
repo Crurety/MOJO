@@ -25,7 +25,11 @@ env:
 jobs:
   deploy:
     name: Deploy To Cloudflare
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - mojo-cloudflare
     timeout-minutes: 45
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -47,5 +51,10 @@ jobs:
             cf-worker/package-lock.json
 
       - name: Deploy to Cloudflare
-        shell: bash
-        run: bash ./scripts/deploy/cloudflare-deploy.sh
+        shell: pwsh
+        run: |
+          $bash = 'D:\Software\Git\bin\bash.exe'
+          if (-not (Test-Path $bash)) {
+            throw "Git Bash not found at $bash"
+          }
+          & $bash ./scripts/deploy/cloudflare-deploy.sh
