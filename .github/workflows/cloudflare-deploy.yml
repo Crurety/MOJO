@@ -38,7 +38,7 @@ jobs:
       CLOUDFLARE_DEPLOY_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Checkout
-        shell: pwsh
+        shell: powershell
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -70,7 +70,7 @@ jobs:
             cf-worker/package-lock.json
 
       - name: Deploy to Cloudflare
-        shell: pwsh
+        shell: powershell
         run: |
           $bash = 'D:\Software\Git\bin\bash.exe'
           if (-not (Test-Path $bash)) {
