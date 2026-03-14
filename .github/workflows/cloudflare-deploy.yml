@@ -38,7 +38,26 @@ jobs:
       CLOUDFLARE_DEPLOY_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $workspace = $env:GITHUB_WORKSPACE
+          $repo = "https://x-access-token:${env:GITHUB_TOKEN}@github.com/${env:GITHUB_REPOSITORY}.git"
+
+          git config --global --add safe.directory $workspace
+
+          if (Test-Path (Join-Path $workspace '.git')) {
+            git -C $workspace remote set-url origin $repo
+            git -C $workspace fetch --depth 1 origin $env:GITHUB_SHA
+            git -C $workspace reset --hard $env:GITHUB_SHA
+            git -C $workspace clean -fdx
+          } else {
+            Get-ChildItem -Force $workspace | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            git clone --depth 1 $repo $workspace
+            git -C $workspace fetch --depth 1 origin $env:GITHUB_SHA
+            git -C $workspace checkout --force $env:GITHUB_SHA
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
