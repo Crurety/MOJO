@@ -5,6 +5,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      apply_d1_schema:
+        description: Apply D1 schema before deployment
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,7 +30,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: "9f5aeb4079b42a826ae6756eee6774c8"
-      CLOUDFLARE_APPLY_D1_SCHEMA: "true"
+      CLOUDFLARE_APPLY_D1_SCHEMA: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_d1_schema && 'true' || 'false' }}
       CLOUDFLARE_DEPLOY_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Checkout

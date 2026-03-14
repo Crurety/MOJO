@@ -8,7 +8,7 @@ On every push to `main`, GitHub Actions will:
 
 1. install dependencies for `frontend`, `admin`, and `cf-worker`
 2. build `frontend` and `admin`
-3. optionally apply the D1 schema
+3. optionally apply the D1 schema when manually requested
 4. deploy `cf-worker` with Wrangler
 5. deploy `frontend/dist` to the Cloudflare Pages project
 6. deploy `admin/dist` to the Cloudflare Pages project
@@ -46,7 +46,8 @@ Optional overrides:
 ## Notes
 
 - The workflow currently deploys production on pushes to `main`.
-- `CLOUDFLARE_APPLY_D1_SCHEMA` is enabled in the workflow. If you later move to non-idempotent SQL migrations, disable that flag and handle schema changes separately.
+- Push deployments do not apply the D1 schema automatically.
+- Manual `workflow_dispatch` runs can opt into D1 schema application when needed.
 - Worker secrets such as API keys must already exist in Cloudflare. This workflow does not create or rotate Worker secrets.
 
 ## Manual Run
